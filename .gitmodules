@@ -1,0 +1,3 @@
+[submodule "deps/dpb"]
+	path = deps/dpb
+	url = git@github.com:burito/dpb
