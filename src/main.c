@@ -82,6 +82,10 @@ int main_init(int argc, char *argv[])
 	shader_uniform(mesh_shader, "projection");
 
 	bunny = wf_load("data/models/bunny/bunny.obj");
+	if(!bunny)
+	{
+		return 1;
+	}
 //	vr_init();
 
 
