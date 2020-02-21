@@ -26,11 +26,10 @@ This may not be necessary anymore.
 
 ## Build Environment
 ### Windows
-* Install [mingw-w64-install.exe](http://sourceforge.net/projects/mingw-w64/files/) 8.1.0-x86_64-posix-seh
-* Add its `bin` directory to your path
-* Install current GPU drivers
-	* Nvidia 430.39
-* Install [ImageMagick](http://www.imagemagick.org/script/download.php#windows)
+* Install [msys2-x86_64-20190524.exe](https://www.msys2.org/)
+```bash
+pacman -S mingw-w64-x86_64-gcc git mingw-w64-x86_64-imagemagick msys/man-pages-posix
+```
 
 ### Linux
 * Install current GPU drivers and compiler
