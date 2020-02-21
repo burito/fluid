@@ -511,20 +511,19 @@ WF_OBJ* wf_parse(char *filename)
 	FILE *fptr = fopen(filename, "r");
 	if(!fptr)
 	{
-		log_error("fopen(\"%s\")", filename);
-		return 0;
+		log_error("fopen(\"%s\") %s", filename, strerror(errno));
+		return NULL;
 	}
 
 	char buf[1024];
 	int i;
-
 
 	WF_OBJ *w = malloc(sizeof(WF_OBJ));
 	if(!w)
 	{
 		fclose(fptr);
 		log_warning("wf_parse() malloc failed");
-		return 0;
+		return NULL;
 	}
 	memset(w, 0, sizeof(WF_OBJ));
 	w->filename = hcopy(filename);
@@ -864,6 +863,10 @@ WF_OBJ* wf_parse(char *filename)
 WF_OBJ* wf_load(char * filename)
 {
 	WF_OBJ *w = wf_parse(filename);
+	if(w == NULL)
+	{
+		return NULL;
+	}
 
 	wf_bound(w);
 
