@@ -204,7 +204,7 @@ static void mtl_load(WF_OBJ *w, char *filename)
 	FILE *fptr = fopen(filepath, "r");
 	if(!fptr)
 	{
-		log_error("fopen(\"%s\")", filepath);
+		log_error("fopen(\"%s\") %s", filepath, strerror(errno));
 		free(filepath);
 		return;
 	}

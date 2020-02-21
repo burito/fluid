@@ -31,6 +31,8 @@ freely, subject to the following restrictions:
 #include <string.h>
 #include <sys/stat.h>
 
+#include "log.h"
+
 
 void tailchomp(char *string)
 {
@@ -113,7 +115,11 @@ char* repath(const char *hostpath, const char *file)
 char* loadTextFile(char *filename)
 {
 	FILE *fptr = fopen(filename, "rb");
-	if(!fptr)return 0;
+	if(!fptr)
+	{
+		log_error("fopen(\"%s\") %s", filename, strerror(errno));
+		return 0;
+	}
 	struct stat stbuf;
 	stat(filename, &stbuf);
 	int size = stbuf.st_size;
