@@ -1,5 +1,5 @@
-# C-API OpenVR test
-A simple test of SteamVR, serving as a template for further work.
+# Fluid Simulation test
+A simple test of my old fluid simulation code, implemented from reading the excellent articles written by [Dr Michael Gourlay](http://www.mijagourlay.com/) on the [Intel website](https://software.intel.com/en-us/articles/fluid-simulation-for-video-games-part-1). I diverged from his described method by using a Morton Curve instead of a Sparse Octtree, and also was about half way through writing his articles. I did this in 2011. And also I didn't really know what I was doing. Still don't.
 
 ## Quickstart
 ```bash
@@ -17,10 +17,17 @@ If you have Steam and SteamVR installed (SteamVR is listed in Steam's "Tools" me
 * `ESC` - quit
 * `F9` - toggle VR
 * `F11` - toggle fullscreen
+* Standard FPS keys move around.
+  * `WASD` move around
+  * `Ctrl` goes down
+  * `Space` goes up
+  * Arrow Keys turn
+  * `Shift` moves faster
+  * Holding the Right Mouse button also turns
 
 On Linux, to get the full Steam environment, one should use the command
 ```bash
-~/.steam/steam/ubuntu12_32/steam-runtime/run.sh ./vrtest
+~/.steam/steam/ubuntu12_32/steam-runtime/run.sh ./fluid
 ```
 This may not be necessary anymore.
 
