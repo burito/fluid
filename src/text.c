@@ -30,6 +30,7 @@ freely, subject to the following restrictions:
 #include <stdarg.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <errno.h>
 
 #include "log.h"
 

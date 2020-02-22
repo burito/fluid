@@ -34,6 +34,7 @@ freely, subject to the following restrictions:
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <errno.h>
 #include "3dmaths.h"
 #include "mesh.h"
 #include "glerror.h"

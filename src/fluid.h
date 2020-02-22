@@ -1,4 +1,5 @@
 
+#include <stdint.h>
 #include "3dmaths.h"
 
 typedef struct vorton {
@@ -29,7 +30,7 @@ typedef struct fluid_sim {
 
 struct particle {
 	vec3 p;
-	char r, g, b, a;
+	uint8_t r, g, b, a;
 };
 
 fluid_sim * fluid_init(float x, float y, float z, int depth);
