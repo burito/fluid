@@ -34,6 +34,7 @@ freely, subject to the following restrictions:
 
 #include "text.h"
 #include "shader.h"
+#include "log.h"
 
 char *shader_header = NULL;
 char shader_empty[] = "";
@@ -213,18 +214,26 @@ void shader_uniform(GLSLSHADER *s, char *name)
 	void* tmp;
 	// Realloc the name array
 	tmp = realloc(s->unif_name, sizeof(char*)*s->unif_num);
-	if(!tmp)printf("Realloc() failed\n");
+	if(tmp == NULL)
+	{
+		log_error("Realloc(1) failed");
+		return;
+	}
 	s->unif_name = tmp;
 	s->unif_name[i] = hcopy(name);
 	// realloc the uniform location id array
 	tmp = realloc(s->unif, sizeof(GLint)*s->unif_num);
-	if(!tmp)printf("Realloc() failed\n");
+	if(tmp == NULL)
+	{
+		log_error("Realloc(2) failed");
+		return;
+	}
 	s->unif = tmp;
 	s->unif[i] = glGetUniformLocation(s->prog, name);
 	// Check if we found the uniform
 	if(-1 == s->unif[i])
 	{
-		printf("Shader(\"%s\")uniform(\"%s\"):Not Found\n",
+		log_warning("Shader(\"%s\")uniform(\"%s\"):Not Found",
 				s->fragfile, s->unif_name[i]);
 	}
 }
@@ -237,12 +246,20 @@ void shader_buffer(GLSLSHADER *s, char *name)
 	void* tmp;
 	// Realloc the name array
 	tmp = realloc(s->buf_name, sizeof(char*)*s->buf_num);
-	if(!tmp)printf("Realloc() failed\n");
+	if(tmp == NULL)
+	{
+		log_error("Realloc(1) failed");
+		return;
+	}
 	s->buf_name = tmp;
 	s->buf_name[i] = hcopy(name);
 	// realloc the uniform location id array
 	tmp = realloc(s->buf, sizeof(GLint)*s->buf_num);
-	if(!tmp)printf("Realloc() failed\n");
+	if(tmp == NULL)
+	{
+		log_error("Realloc(1) failed");
+		return;
+	}
 	s->buf = tmp;
 	s->buf[i] = glGetUniformBlockIndex(s->prog, name);
 	// Check if we found the uniform

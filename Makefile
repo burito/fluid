@@ -55,3 +55,7 @@ $(MAC_CONTENTS)/MacOS/$(BINARY_NAME): $(BINARY_NAME).bin
 	install_name_tool -change @loader_path/libopenvr_api.dylib @loader_path/../Frameworks/libopenvr_api.dylib $@
 	install_name_tool -add_rpath "@loader_path/../Frameworks" $@
 # end build the App Bundle
+
+.PHONY:lint
+lint:
+	clang-tidy src/* -checks=-clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling -- $(CFLAGS)

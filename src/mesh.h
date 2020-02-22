@@ -45,6 +45,12 @@ typedef struct WF_FACE
 } WF_FACE;
 
 
+struct packed_verts {
+	vec3 p;
+	vec3 n;
+	vec2 uv;
+};
+
 typedef struct WF_OBJ
 {
 	WF_MTL *m;
@@ -53,11 +59,11 @@ typedef struct WF_OBJ
 	int nv, nn, nt, nf, ng, ns, nm;
 	vec3 *v, *vt, *vn, *fn;
 	vec2 *uv;
-	GLfloat *p;
+	struct packed_verts *pv;
 	char *filename;
 	char **groups;
 	int *sgroups;
-	GLuint va, ab, eb;
+	uint32_t va, ab, eb;
 	void (*draw)(struct WF_OBJ*);
 } WF_OBJ;
 

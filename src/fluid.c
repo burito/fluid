@@ -65,7 +65,7 @@ fluid_sim * fluid_init(float x, float y, float z, int depth)
 	tree_size = fluid_tree_size(depth);
 
 	sim = malloc(sizeof(fluid_sim));
-	if( !sim )
+	if(sim == NULL)
 	{
 		log_fatal("malloc(fluid_sim)");
 		return NULL;
@@ -73,9 +73,10 @@ fluid_sim * fluid_init(float x, float y, float z, int depth)
 	memset(sim, 0, sizeof(fluid_sim));
 	sim->depth = depth;
 	sim->tree = malloc( tree_size * sizeof(vorton) );
-	if( !sim->tree )
+	if(sim->tree == NULL)
 	{
 		log_fatal("malloc(sim->tree)");
+		free(sim);
 		return NULL;
 	}
 	memset(sim->tree, 0, tree_size * sizeof(vorton));
@@ -105,8 +106,7 @@ void fluid_end(fluid_sim *sim)
 }
 
 
-void fluid_accumulate_velocity(vec3 *v, vec3 *p,
-		vorton *vort)
+void fluid_accumulate_velocity(vec3 *v, vec3 *p, vorton *vort)
 {
 	float distmag;
 	float oneOverDist;
@@ -135,7 +135,6 @@ void fluid_accumulate_velocity(vec3 *v, vec3 *p,
 void fluid_tree_update(fluid_sim *sim)
 {
 	int poff;
-	int i;
 	float weight;
 	float magnitude;
 	vorton *parent, *child;
@@ -160,7 +159,7 @@ void fluid_tree_update(fluid_sim *sim)
 	}
 
 	// weighted average the list of vortons on each leaf node
-	for(i = fluid_tree_size(sim->depth-1); i< fluid_tree_size(sim->depth); i++)
+	for(int i = fluid_tree_size(sim->depth-1); i< fluid_tree_size(sim->depth); i++)
 	{
 		parent = &sim->tree[i];
 		child = parent->next;
@@ -187,7 +186,7 @@ void fluid_tree_update(fluid_sim *sim)
 		weight = 0.0000000001;
 		parent = &sim->tree[poff];
 		memset(parent, 0, sizeof(vorton));
-		for(i=0; i<8; i++)
+		for(int i=0; i<8; i++)
 		{
 			child = &sim->tree[(poff<<3)+i];
 			magnitude = sqrt(mag(child->w));//sqrt() may be optional
@@ -222,16 +221,15 @@ void fluid_diffuse(fluid_sim *sim)
 	vorton* this;
 	vorton* other;
 	vec3 temp;
-	int x,y,z;
 	int mx, my, mz;
 	int layer = fluid_tree_size(sim->depth - 1);
 	int step;
 
 	mx = my = mz = sim->cells - 1;
 
-	for(x = 0; x < mx; x++)
-	for(y = 0; y < my; y++)
-	for(z = 0; z < mz; z++)
+	for(int x = 0; x < mx; x++)
+	for(int y = 0; y < my; y++)
+	for(int z = 0; z < mz; z++)
 	{
 		step = 0;
 		this = sim->tree[layer+cell_offset(x,y,z)].next;
@@ -281,8 +279,8 @@ void fluid_tree_velocity(fluid_sim *sim, vec3 *result,
 	vec3 tpos;
 	int layer = fluid_tree_size(sim->depth-1);
 	int offset = pos_to_offset(sim, sim->depth, pos)-layer;
-	int child, parent, i;
-	
+	int child, parent;
+
 	tpos = sub(*pos, sim->origin);
 
 	result->x = result->y = result->z = 0.0f;
@@ -291,8 +289,8 @@ void fluid_tree_velocity(fluid_sim *sim, vec3 *result,
 	{
 		parent = offset & 0xFFFFFFF8;
 		child = offset & 7;
-		for( i=0; i< 8; i++)
-		if( i != child )
+		for(int i=0; i< 8; i++)
+		if(i != child)
 		{
 			fluid_accumulate_velocity(result, &tpos, &sim->tree[layer+parent+i]);
 		}
@@ -304,7 +302,6 @@ void fluid_tree_velocity(fluid_sim *sim, vec3 *result,
 
 void fluid_velocity_grid(fluid_sim *sim)
 {
-	int x,y,z;
 	int mx, my, mz;
 	int layer = fluid_tree_size(sim->depth - 1);
 	vec3 *v;
@@ -312,9 +309,9 @@ void fluid_velocity_grid(fluid_sim *sim)
 
 	mx = my = mz = sim->cells;
 
-	for(x = 1; x < mx; x++)
-	for(y = 1; y < my; y++)
-	for(z = 1; z < mz; z++)
+	for(int x = 1; x < mx; x++)
+	for(int y = 1; y < my; y++)
+	for(int z = 1; z < mz; z++)
 	{
 		v = &sim->tree[layer + cell_offset(x,y,z)].v;
 		pos.x = (float)x * sim->step.x + sim->origin.x;
@@ -362,10 +359,10 @@ void fluid_interpolate_velocity(fluid_sim *sim, vec3 *result,
 	iyd = 1.0f - yd;
 	izd = 1.0f - zd;
 
-	// http://en.wikipedia.org/wiki/Trilinear_interpolation	
+	// http://en.wikipedia.org/wiki/Trilinear_interpolation
 	a = &sim->tree[layer+cell_offset(xp, yp, zp)].v;		// c000
 	b = &sim->tree[layer+cell_offset(xp, yp, zp+1)].v;		// c001
-	c = &sim->tree[layer+cell_offset(xp, yp+1, zp)].v;		// c010	
+	c = &sim->tree[layer+cell_offset(xp, yp+1, zp)].v;		// c010
 	d = &sim->tree[layer+cell_offset(xp, yp+1, zp+1)].v;	// c011
 	e = &sim->tree[layer+cell_offset(xp+1, yp, zp)].v;		// c100
 	f = &sim->tree[layer+cell_offset(xp+1, yp, zp+1)].v;	// c101
@@ -425,7 +422,7 @@ void fluid_stretch_tilt(fluid_sim *sim)
 		// FIXME: this line causes a segfault
 		// compute jacobian matrix
 		u = sim->tree[offset].v.x - // TODO: segfault
-			sim->tree[layer+cell_offset(px+1,py,pz)].v.x;	
+			sim->tree[layer+cell_offset(px+1,py,pz)].v.x;
 		v = sim->tree[offset].v.y -
 			sim->tree[layer+cell_offset(px,py+1,pz)].v.x;
 		w = sim->tree[offset].v.z -
@@ -440,7 +437,7 @@ void fluid_stretch_tilt(fluid_sim *sim)
 		j1.x = u/x;
 		j1.y = u/y;
 		j1.z = u/z;
-		
+
 		j2.x = v/x;
 		j2.y = v/y;
 		j2.z = v/z;
@@ -451,7 +448,7 @@ void fluid_stretch_tilt(fluid_sim *sim)
 
 		// multiply jacobian by vorticity vector
 		vw = &this->vort->w;
-	
+
 		dw.x = j1.x * vw->x + j1.y * vw->y + j1.z * vw->z;
 		dw.y = j2.x * vw->x + j2.y * vw->y + j2.z * vw->z;
 		dw.z = j3.x * vw->x + j3.y * vw->y + j3.z * vw->z;
@@ -472,9 +469,8 @@ void fluid_advect_tracers(fluid_sim *sim, struct particle *particles,
 {
 	float deltatime = 1.0f / 60.0f;
 	vec3 velocity;
-	int i;
 
-	for(i=0; i<count; i++)
+	for(int i=0; i<count; i++)
 	{
 		fluid_interpolate_velocity(sim, &velocity, &particles[i].p);
 		velocity = mul(velocity, deltatime);
@@ -536,7 +532,6 @@ void fluid_bound(fluid_sim *sim, struct particle *pos)
 
 void fluid_update_box(fluid_sim *sim)
 {
-	
 	sim->step.x = sim->size.x / (float)sim->cells;
 	sim->step.y = sim->size.y / (float)sim->cells;
 	sim->step.z = sim->size.z / (float)sim->cells;
@@ -544,6 +539,5 @@ void fluid_update_box(fluid_sim *sim)
 	sim->oneOverStep.x = 1.0f / sim->step.x;
 	sim->oneOverStep.y = 1.0f / sim->step.y;
 	sim->oneOverStep.z = 1.0f / sim->step.z;
-
 }
 

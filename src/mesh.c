@@ -281,44 +281,46 @@ static void wf_bound(WF_OBJ *w)
 }
 
 
-
 void wf_interleave(WF_OBJ *w)
 {
-	if(!w)return;
+	if(w == NULL)return;
 	log_debug("At interleave we have %d/%d/%d", w->nv, w->nn, w->nt);
-	if(!w->nv)return;
-	float *p = malloc(w->nv * 32);
-	if(!p)return;
-	memset(p, 0, w->nv * 32);
+	if(w->nv == 0)return;
+	struct packed_verts *pv = malloc(w->nv * sizeof(struct packed_verts));
+	if(pv == NULL)
+	{
+		log_error("malloc(w->nv*sizeof(packed_verts))");
+		return;
+	}
+	memset(pv, 0, w->nv * sizeof(struct packed_verts));
 	// interleave the verts, normals and texture vec2s for the VBO
 	for(int i=0; i<w->nv; i++)
 	{
-		p[i*8+0] = w->v[i].x;
-		p[i*8+1] = w->v[i].y;
-		p[i*8+2] = w->v[i].z;
+		pv[i].p = w->v[i];
 		if(w->nv == w->nn)
 		{
-			p[i*8+3] = w->vn[i].x;
-			p[i*8+4] = w->vn[i].y;
-			p[i*8+5] = w->vn[i].z;
+			pv[i].n = w->vn[i];
 		}
 		if(w->uv)
 		{
-			p[i*8+6] = w->uv[i].x;
-			p[i*8+7] = w->uv[i].y;
-		}
-		else
-		{
-			p[i*8+6] = 0.0;
-			p[i*8+7] = 0.0;
-
+			pv[i].uv = w->uv[i];
 		}
 	}
 	log_debug("Interleaved ok!");
-	w->p = p;
+	w->pv = pv;
 
 	// now store the faces, per material for fast rendering
-	int3 *f = malloc(w->nf*12);
+	if(w->nf <= 0)
+	{
+		log_warning("no faces in model");
+		return;
+	}
+	int3 *f = malloc(w->nf*sizeof(int3));
+	if(f == NULL)
+	{
+		log_error("malloc(w->nf*sizeof(int3))");
+		return;
+	}
 	WF_MTL *m = w->m;
 	int o=0;
 	for(;m;m = m->next)
@@ -476,20 +478,20 @@ static void wf_gpu_load(WF_OBJ *w)
 
 	glGenBuffers(1, &w->ab);
 	glBindBuffer( GL_ARRAY_BUFFER, w->ab);
-	glBufferData( GL_ARRAY_BUFFER, w->nv*32, w->p, GL_STATIC_DRAW );
+	glBufferData( GL_ARRAY_BUFFER, w->nv*sizeof(struct packed_verts), w->pv, GL_STATIC_DRAW );
 
 	glGenBuffers( 1, &w->eb );
 	glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, w->eb );
 	glBufferData( GL_ELEMENT_ARRAY_BUFFER, w->nf*12, w->vf, GL_STATIC_DRAW );
 
 	glEnableVertexAttribArray( 0 );
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 32, (void *)0 );
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(struct packed_verts), (void *)0 );
 
 	glEnableVertexAttribArray( 1 );
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 32, (void *)12 );
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(struct packed_verts), (void *)12 );
 
 	glEnableVertexAttribArray( 2 );
-	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 32, (void *)24 );
+	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(struct packed_verts), (void *)24 );
 
 	glBindVertexArray( 0 );
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -510,7 +512,7 @@ WF_OBJ* wf_parse(char *filename)
 {
 	log_info("Loading Wavefront OBJ(\"%s\");", filename);
 	FILE *fptr = fopen(filename, "r");
-	if(!fptr)
+	if(fptr == NULL)
 	{
 		log_error("fopen(\"%s\") %s", filename, strerror(errno));
 		return NULL;
@@ -520,7 +522,7 @@ WF_OBJ* wf_parse(char *filename)
 	int i;
 
 	WF_OBJ *w = malloc(sizeof(WF_OBJ));
-	if(!w)
+	if(w == NULL)
 	{
 		fclose(fptr);
 		log_warning("wf_parse() malloc failed");
@@ -889,7 +891,7 @@ void wf_free(WF_OBJ *w)
 	if(w->v)free(w->v);
 	if(w->vt)free(w->vt);
 	if(w->vn)free(w->vn);
-	if(w->p)free(w->p);
+	if(w->pv)free(w->pv);
 	if(w->f)free(w->f);
 	if(w->fn)free(w->fn);
 #ifndef STATIC_TEST

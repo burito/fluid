@@ -23,6 +23,7 @@ freely, subject to the following restrictions:
 
 #ifndef __IMG_H__
 #define __IMG_H__
+#include <stdint.h>
 
 typedef struct IMG
 {
@@ -30,7 +31,7 @@ typedef struct IMG
 	int bpp;
 	int channels;
 	unsigned char *buf;
-	GLuint id;
+	uint32_t id;
 	char *name;
 } IMG;
 

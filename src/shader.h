@@ -21,6 +21,14 @@ freely, subject to the following restrictions:
    distribution.
 */
 
+#ifdef __APPLE__
+#define GL_SILENCE_DEPRECATION
+#include <OpenGL/gl3.h>
+#else
+#include <GL/glew.h>
+#endif
+
+
 typedef struct GLSLSHADER
 {
 	GLuint prog, frag, vert;
@@ -47,4 +55,3 @@ extern char *shader_header;
 int available_vram(void);
 GLint glBaseFormat(GLint);
 GLint glBaseType(GLint);
-

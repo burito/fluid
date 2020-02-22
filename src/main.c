@@ -163,7 +163,7 @@ void main_loop(void)
 
 	if(!vr_using)
 	{
-		mat4x4 projection = mat4x4_identity();
+		mat4x4 projection;
 		projection = mat4x4_perspective(1, 30, 1, (float)vid_height / (float)vid_width);
 //		projection = mat4x4_orthographic(0.1, 30, 1, (float)vid_height / (float)vid_width);
 		mat4x4 view = mat4x4_translate_float(0, 0, 0); // move the camera 1m above ground
