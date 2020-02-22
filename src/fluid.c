@@ -422,7 +422,7 @@ void fluid_stretch_tilt(fluid_sim *sim)
 		pz = (int)(p.z / sim->step.z);
 
 		offset = layer+cell_offset(px,py,pz);
-
+		// FIXME: this line causes a segfault
 		// compute jacobian matrix
 		u = sim->tree[offset].v.x - // TODO: segfault
 			sim->tree[layer+cell_offset(px+1,py,pz)].v.x;	

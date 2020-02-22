@@ -1,17 +1,17 @@
 # Fluid Simulation test
-A simple test of my old fluid simulation code, implemented from reading the excellent articles written by [Dr Michael Gourlay](http://www.mijagourlay.com/) on the [Intel website](https://software.intel.com/en-us/articles/fluid-simulation-for-video-games-part-1). I diverged from his described method by using a Morton Curve instead of a Sparse Octtree, and also was about half way through writing his articles. I did this in 2011. And also I didn't really know what I was doing. Still don't.
+A simple test of my old fluid simulation code, implemented from reading the excellent articles written by [Dr Michael Gourlay](http://www.mijagourlay.com/) on the [Intel website](https://software.intel.com/en-us/articles/fluid-simulation-for-video-games-part-1). I diverged from his described method by using a Morton Curve instead of a Sparse Octtree, and I had only really implemented the first 3 articles, back in 2011. Fingers crossed, I can get it working better.
 
 ## Quickstart
 ```bash
 git clone --recurse-submodules git@github.com:burito/fluid
 cd fluid
-make -j8       # Build it using 8 threads
+make -j8      # Build it using 8 threads
 fluid.exe     # Windows
 ./fluid       # Linux
 ./fluid.bin   # MacOSX
 ```
 
-If you have Steam and SteamVR installed (SteamVR is listed in Steam's "Tools" menu), then press F9. If you don't have a VR headset that works with SteamVR, you can use the [null driver](https://developer.valvesoftware.com/wiki/SteamVR/steamvr.vrsettings).
+If you have Steam and SteamVR installed (SteamVR is listed in Steam's "Tools" menu), then press `F9`. If you don't have a VR headset that works with SteamVR, you can use the [null driver](https://developer.valvesoftware.com/wiki/SteamVR/steamvr.vrsettings).
 
 ## Usage
 * `ESC` - quit
@@ -33,9 +33,10 @@ This may not be necessary anymore.
 
 ## Build Environment
 ### Windows
+* Install [Git for Windows](https://git-scm.com/download/win)
 * Install [msys2-x86_64-20190524.exe](https://www.msys2.org/)
 ```bash
-pacman -S mingw-w64-x86_64-gcc git mingw-w64-x86_64-imagemagick msys/man-pages-posix
+pacman -S mingw-w64-x86_64-gcc mingw-w64-x86_64-imagemagick msys/man-pages-posix
 ```
 
 ### Linux
@@ -43,7 +44,7 @@ pacman -S mingw-w64-x86_64-gcc git mingw-w64-x86_64-imagemagick msys/man-pages-p
 ```bash
 add-apt-repository ppa:graphics-drivers/ppa
 apt update
-apt install nvidia-410 vulkan-utils build-essential clang imagemagick
+apt install nvidia-410 vulkan-utils build-essential clang imagemagick git-core gitk
 ```
 
 ### MacOS
