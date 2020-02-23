@@ -425,9 +425,8 @@ void fluid_stretch_tilt(fluid_sim *sim)
 
 #define TILT_FUDGE 0.2f
 			// integrate with euler
-			this->vort->w.x += TILT_FUDGE * dw.x * deltatime;
-			this->vort->w.y += TILT_FUDGE * dw.y * deltatime;
-			this->vort->w.z += TILT_FUDGE * dw.z * deltatime;
+			vec3 *w = &this->vort->w;
+			*w = add(*w, mul(dw, deltatime * TILT_FUDGE));
 #undef TILT_FUDGE
 		}
 		this = this->next;
