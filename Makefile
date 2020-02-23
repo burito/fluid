@@ -4,7 +4,7 @@ COMPANY = Daniel Burke
 COPYRIGHT = 2013-2020
 DESCRIPTION = Fluid Test
 BINARY_NAME = fluid
-OBJS = main.o version.o fast_atof.o log.o global.o 3dmaths.o glerror.o vr.o shader.o text.o fps_movement.o fluid.o mesh.o image.o stb_image.o fluidtest.o
+OBJS = main.o version.o fast_atof.o log.o global.o 3dmaths.o glerror.o vr.o shader.o text.o fps_movement.o fluid.o mesh.o image.o stb_image.o fluidtest.o octtree.o
 CFLAGS = -Wall -std=c11 -isystem deps/include -Ideps/dpb/src
 VPATH = src build deps deps/dpb/src
 
