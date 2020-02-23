@@ -71,26 +71,19 @@ void fluid_end(struct fluid_sim *sim)
 }
 
 
-void fluid_tree_update(fluid_sim *sim)
+void fluid_tree_update(struct fluid_sim *sim)
 {
 	int poff;
 	float weight;
 	float magnitude;
-	vorton *parent, *child;
-	vorton_list* this = sim->vortons;
 
 	// delete the vorton list on each leaf node, and each vorton
-	memset(sim->tree, 0, fluid_tree_size(sim->depth)*sizeof(vorton));
-	while(this)
-	{
-		this->vort->next = NULL;
-		this = this->next;
-	}
+	octtree_empty(sim->octtree);
 
 	// walk all vortons, assigning them to a leaf node in the octtree
-	this = sim->vortons;
-	while(this)
+	for(int i=0; i<sim->vorton_count; i++)
 	{
+		struct vorton *vorton = &sim->vortons[i];
 		parent = &sim->tree[pos_to_offset(sim, sim->depth, &this->vort->p)];
 		this->vort->next = parent->next;
 		parent->next = this->vort;

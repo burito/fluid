@@ -35,6 +35,7 @@ struct vorton {
 struct fluid_sim {
 	int max_depth;
 	int max_vortons;
+	int vorton_count;
 	struct vorton *vortons;
 	struct octtree *octtree;
 };

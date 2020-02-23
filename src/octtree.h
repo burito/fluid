@@ -31,6 +31,7 @@ struct octtree_node {
 
 struct octtree {
 	uint32_t node_pool_size;
+   uint32_t node_count;
 	struct octtree_node *node_pool;
 	vec3 origin;
 	vec3 volume;
@@ -38,3 +39,4 @@ struct octtree {
 
 struct octtree* octree_init(uint32_t size);
 void octtree_free(struct octtree* octtree);
+void octtree_empty(struct octtree* octtree);

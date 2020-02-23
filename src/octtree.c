@@ -58,3 +58,9 @@ void octtree_free(struct octtree* octtree)
 	free(octtree->node_pool);
 	free(octtree);
 }
+
+void octtree_empty(struct octtree* octtree)
+{
+	memset(octtree->node_pool, 0, octtree->node_pool_size * sizeof(struct octtree_node));
+	octtree->node_count = 0;
+}
