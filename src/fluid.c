@@ -52,6 +52,19 @@ int pos_to_offset(fluid_sim *sim, int depth, vec3 *pos)
 }
 
 
+int particle_inside_bound(vec3 particle, vec3 origin, vec3 volume)
+{
+	if(particle.x < origin.x)return 0;
+	if(particle.x > origin.x+volume.x)return 0;
+
+	if(particle.y < origin.y)return 0;
+	if(particle.y > origin.y+volume.y)return 0;
+
+	if(particle.z < origin.z)return 0;
+	if(particle.z > origin.z+volume.z)return 0;
+	return 1;
+}
+
 
 fluid_sim * fluid_init(float x, float y, float z, int depth)
 {
@@ -312,11 +325,14 @@ void fluid_velocity_grid(fluid_sim *sim)
 	}
 }
 
+float mix(float x, float y, float a)
+{
+	return x * (1.0-a) + y*a;
+}
+
+
 void fluid_interpolate_velocity(fluid_sim *sim, vec3 *result, vec3 *pos)
 {
-	int xp, yp, zp;
-	float xd, yd, zd, ixd, iyd, izd;
-	float w1, w2;
 	int layer = fluid_tree_size(sim->depth - 1);
 
 	vec3 rpos = sub(*pos, sim->origin);
@@ -335,12 +351,18 @@ void fluid_interpolate_velocity(fluid_sim *sim, vec3 *result, vec3 *pos)
 		log_warning("Flail z! x=%f, y=%f, z=%f", pos->x, pos->y, pos->z);
 		return;
 	}
+
+	int xp, yp, zp;
 	xp = (int)(rpos.x / sim->step.x);
 	yp = (int)(rpos.y / sim->step.y);
 	zp = (int)(rpos.z / sim->step.z);
+
+	float xd, yd, zd;
 	xd = fmod(rpos.x, sim->step.x) * sim->oneOverStep.x;
 	yd = fmod(rpos.y, sim->step.y) * sim->oneOverStep.y;
 	zd = fmod(rpos.z, sim->step.z) * sim->oneOverStep.z;
+
+	float ixd, iyd, izd;
 	ixd = 1.0f - xd;
 	iyd = 1.0f - yd;
 	izd = 1.0f - zd;
@@ -356,30 +378,15 @@ void fluid_interpolate_velocity(fluid_sim *sim, vec3 *result, vec3 *pos)
 	g = &sim->tree[layer+cell_offset(xp+1, yp+1, zp)].v;	// c110
 	h = &sim->tree[layer+cell_offset(xp+1, yp+1, zp+1)].v;	// c111
 
-	float i1, i2, j1, j2;
-	i1 = a->x * izd + b->x * zd;
-	i2 = c->x * izd + d->x * zd;
-	j1 = e->x * izd + f->x * zd;
-	j2 = g->x * izd + h->x * zd;
-	w1 = i1 * iyd + i2 * yd;
-	w2 = j1 * iyd + j2 * yd;
-	result->x = w1 * ixd + w2 * xd;
+	vec3 i1 = add(mul(*a, izd), mul(*b, zd));
+	vec3 i2 = add(mul(*c, izd), mul(*d, zd));
+	vec3 j1 = add(mul(*e, izd), mul(*f, zd));
+	vec3 j2 = add(mul(*g, izd), mul(*h, zd));
 
-	i1 = a->y * izd + b->y * zd;
-	i2 = c->y * izd + d->y * zd;
-	j1 = e->y * izd + f->y * zd;
-	j2 = g->y * izd + h->y * zd;
-	w1 = i1 * iyd + i2 * yd;
-	w2 = j1 * iyd + j2 * yd;
-	result->y = w1 * ixd + w2 * xd;
+	vec3 w1 = add(mul(i1, iyd), mul(i2, yd));
+	vec3 w2 = add(mul(j1, iyd), mul(j2, yd));
 
-	i1 = a->z * izd + b->z * zd;
-	i2 = c->z * izd + d->z * zd;
-	j1 = e->z * izd + f->z * zd;
-	j2 = g->z * izd + h->z * zd;
-	w1 = i1 * iyd + i2 * yd;
-	w2 = j1 * iyd + j2 * yd;
-	result->z = w1 * ixd + w2 * xd;
+	*result = add(mul(w1, ixd), mul(w2, xd));
 }
 
 void fluid_stretch_tilt(fluid_sim *sim)
@@ -392,37 +399,40 @@ void fluid_stretch_tilt(fluid_sim *sim)
 	this = sim->vortons;
 	while(this)
 	{
-		vec3 p = sub(this->vort->p, sim->origin);
+		if( particle_inside_bound(this->vort->p, sim->origin, sim->size) )
+		{
 
-		int px = (int)(p.x / sim->step.x);
-		int py = (int)(p.y / sim->step.y);
-		int pz = (int)(p.z / sim->step.z);
+			vec3 p = sub(this->vort->p, sim->origin);
 
-		offset = layer+cell_offset(px,py,pz);
-		// FIXME: this line causes a segfault
-		// compute jacobian matrix
-		vec3 diff;
-		diff.x = sim->tree[offset].v.x - // TODO: segfault
-			sim->tree[layer+cell_offset(px+1,py,pz)].v.x;
-		diff.y = sim->tree[offset].v.y -
-			sim->tree[layer+cell_offset(px,py+1,pz)].v.x;
-		diff.z = sim->tree[offset].v.z -
-			sim->tree[layer+cell_offset(px,py,pz+1)].v.x;
+			int px = (int)(p.x / sim->step.x);
+			int py = (int)(p.y / sim->step.y);
+			int pz = (int)(p.z / sim->step.z);
 
-		mat3x3 jacobian = vec3_jacobian_vec3(diff, sim->step);
-		// multiply jacobian by vorticity vector
-		vec3 dw = mul(jacobian, this->vort->w);
+			offset = layer+cell_offset(px,py,pz);
+			// FIXME: this line causes a segfault
+			// compute jacobian matrix
+			vec3 diff;
+			diff.x = sim->tree[offset].v.x - // TODO: segfault
+				sim->tree[layer+cell_offset(px+1,py,pz)].v.x;
+			diff.y = sim->tree[offset].v.y -
+				sim->tree[layer+cell_offset(px,py+1,pz)].v.x;
+			diff.z = sim->tree[offset].v.z -
+				sim->tree[layer+cell_offset(px,py,pz+1)].v.x;
+
+			mat3x3 jacobian = vec3_jacobian_vec3(diff, sim->step);
+			// multiply jacobian by vorticity vector
+			vec3 dw = mul(jacobian, this->vort->w);
 
 #define TILT_FUDGE 0.2f
-		// integrate with euler
-		this->vort->w.x += TILT_FUDGE * dw.x * deltatime;
-		this->vort->w.y += TILT_FUDGE * dw.y * deltatime;
-		this->vort->w.z += TILT_FUDGE * dw.z * deltatime;
+			// integrate with euler
+			this->vort->w.x += TILT_FUDGE * dw.x * deltatime;
+			this->vort->w.y += TILT_FUDGE * dw.y * deltatime;
+			this->vort->w.z += TILT_FUDGE * dw.z * deltatime;
 #undef TILT_FUDGE
+		}
 		this = this->next;
 	}
 }
-
 
 void fluid_advect_tracers(fluid_sim *sim, struct particle *particles,
 		int count)
@@ -432,6 +442,8 @@ void fluid_advect_tracers(fluid_sim *sim, struct particle *particles,
 
 	for(int i=0; i<count; i++)
 	{
+		if( !particle_inside_bound(particles[i].p, sim->origin, sim->size) )
+			continue;
 		fluid_interpolate_velocity(sim, &velocity, &particles[i].p);
 		velocity = mul(velocity, deltatime);
 		particles[i].p = add(particles[i].p, velocity);
@@ -447,9 +459,12 @@ void fluid_advect_vortons(fluid_sim *sim)
 
 	while(this)
 	{
-		fluid_interpolate_velocity(sim, &velocity, &this->vort->p);
-		velocity = mul(velocity, deltatime);
-		this->vort->p = add(this->vort->p, velocity);
+		if( particle_inside_bound(this->vort->p, sim->origin, sim->size) )
+		{
+			fluid_interpolate_velocity(sim, &velocity, &this->vort->p);
+			velocity = mul(velocity, deltatime);
+			this->vort->p = add(this->vort->p, velocity);
+		}
 		this = this->next;
 	}
 }

@@ -137,11 +137,11 @@ void fluidtest_tick(void)
 	// advec3 the fluid
 	fluid_tick(sim);
 	fluid_advect_tracers(sim, particles, n_part);
-	for(int i=0; i< n_part; i++)
-	{
-		fluid_bound(sim, &particles[i]);
-	}
-	fluid_update_box(sim);
+	// for(int i=0; i< n_part; i++)
+	// {
+	// 	fluid_bound(sim, &particles[i]);
+	// }
+	// fluid_update_box(sim);
 }
 
 /*
