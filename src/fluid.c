@@ -1,11 +1,25 @@
 /*
- * Naugthy Assumptions I've made
- * Integers are at least 32-bits.
- * >> shifts towards the LSB, filling the MSB's with 0
- *
- *
- */
+Copyright (c) 2011,2020 Daniel Burke
 
+This software is provided 'as-is', without any express or implied
+warranty. In no event will the authors be held liable for any damages
+arising from the use of this software.
+
+Permission is granted to anyone to use this software for any purpose,
+including commercial applications, and to alter it and redistribute it
+freely, subject to the following restrictions:
+
+   1. The origin of this software must not be misrepresented; you must not
+   claim that you wrote the original software. If you use this software
+   in a product, an acknowledgment in the product documentation would be
+   appreciated but is not required.
+
+   2. Altered source versions must be plainly marked as such, and must not be
+   misrepresented as being the original software.
+
+   3. This notice may not be removed or altered from any source
+   distribution.
+*/
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
@@ -16,132 +30,44 @@
 #include "log.h"
 
 
-int spread_bits(int x)
+struct fluid_sim* fluid_init(float x, float y, float z, int max_depth)
 {
-	x = (x | (x << 16)) & 0x030000FF;
-	x = (x | (x <<  8)) & 0x0300F00F;
-	x = (x | (x <<  4)) & 0x030C30C3;
-	x = (x | (x <<  2)) & 0x09249249;
-	return x;
-}
+	struct fluid_sim *sim;
 
-int cell_offset(int x, int y, int z)
-{
-	return spread_bits(x)
-		| spread_bits(y) << 1
-		| spread_bits(z) << 2;
-}
-
-int fluid_tree_size(int depth)
-{
-	return 011111111111 & (0xFFFFFFFF >> (32-(depth*3 + 1)));
-}
-
-int pos_to_offset(fluid_sim *sim, int depth, vec3 *pos)
-{
-	int segments = pow(2,depth);
-	float sx, sy, sz;
-	sx = sim->size.x / (float)segments;
-	sy = sim->size.y / (float)segments;
-	sz = sim->size.z / (float)segments;
-
-	return cell_offset((int)((pos->x-sim->origin.x) / sx),
-			(int)((pos->y-sim->origin.y) / sy),
-			(int)((pos->z-sim->origin.z) / sz) )
-		+ fluid_tree_size(depth-1);
-}
-
-
-int particle_inside_bound(vec3 particle, vec3 origin, vec3 volume)
-{
-	if(particle.x < origin.x)return 0;
-	if(particle.x > origin.x+volume.x)return 0;
-
-	if(particle.y < origin.y)return 0;
-	if(particle.y > origin.y+volume.y)return 0;
-
-	if(particle.z < origin.z)return 0;
-	if(particle.z > origin.z+volume.z)return 0;
-	return 1;
-}
-
-
-fluid_sim * fluid_init(float x, float y, float z, int depth)
-{
-	fluid_sim* sim;
-	int tree_size;
-
-	// if you don't know what you're doing, sane default
-	if(depth > 10) depth = 2;
-	if(depth < 2) depth = 2;
-
-	tree_size = fluid_tree_size(depth);
-
-	sim = malloc(sizeof(fluid_sim));
+	sim = malloc(sizeof(struct fluid_sim));
 	if(sim == NULL)
 	{
-		log_fatal("malloc(fluid_sim)");
+		log_fatal("malloc(fluid_sim) %s", strerror(errno));
 		return NULL;
 	}
-	memset(sim, 0, sizeof(fluid_sim));
-	sim->depth = depth;
-	sim->tree = malloc( tree_size * sizeof(vorton) );
-	if(sim->tree == NULL)
+	memset(sim, 0, sizeof(struct fluid_sim));
+	sim->octtree = octree_init(20);
+	if(sim->octtree == NULL)
 	{
-		log_fatal("malloc(sim->tree)");
+		log_fatal("octtree_init() failed");
 		free(sim);
 		return NULL;
 	}
-	memset(sim->tree, 0, tree_size * sizeof(vorton));
+	sim->max_depth = 5; // chosen by fair dice roll
+	sim->max_vortons = 10;	// why not
+	sim->vortons = malloc(sim->max_vortons * sizeof(struct vorton));
+	if(sim->vortons == NULL)
+	{
+		log_fatal("malloc(sim->vortons) %s", strerror(errno));
+		free(sim);
+		return NULL;
+	}
+	memset(sim->vortons, 0, sim->max_vortons * sizeof(struct vorton));
 
-	sim->size.x = x;
-	sim->size.y = y;
-	sim->size.z = z;
-
-	sim->cells = pow(2,depth);
-
-	sim->step.x = x / (float)sim->cells;
-	sim->step.y = y / (float)sim->cells;
-	sim->step.z = z / (float)sim->cells;
-
-	sim->oneOverStep.x = 1.0f / sim->step.x;
-	sim->oneOverStep.y = 1.0f / sim->step.y;
-	sim->oneOverStep.z = 1.0f / sim->step.z;
-
+	// allocated all of our stuff
 	return sim;
 }
 
-
-void fluid_end(fluid_sim *sim)
+void fluid_end(struct fluid_sim *sim)
 {
-	free(sim->tree);
+	octtree_free(sim->octtree);
+	free(sim->vortons);
 	free(sim);
-}
-
-
-void fluid_accumulate_velocity(vec3 *v, vec3 *p, vorton *vort)
-{
-	float distmag;
-	float oneOverDist;
-	float distLaw;
-	float radius = 50.0f;
-	float rad2 = radius * radius;
-	vec3 dist, w, result;
-	dist = sub(*p, vort->p);
-
-	distmag = mag(dist) + 0.001;
-	oneOverDist = finvsqrt(distmag);
-//	vect_smul(&dir, &dist, oneOverDist);
-	distLaw = (distmag < rad2)
-		? (oneOverDist / rad2) : (oneOverDist / distmag);
-
-	dist = mul(dist, distLaw);
-	w = mul(vort->w,
-//		(1.0f / (4.0f * 3.1415926535f)) * (8.0f * rad2 * radius));
-		0.636619772367f * rad2 * radius);
-	result = vec3_cross(w, dist);
-	*v = add(*v, result);
-
 }
 
 
@@ -215,6 +141,48 @@ void fluid_tree_update(fluid_sim *sim)
 	}
 
 }
+
+
+int particle_inside_bound(vec3 particle, vec3 origin, vec3 volume)
+{
+	if(particle.x < origin.x)return 0;
+	if(particle.x > origin.x+volume.x)return 0;
+
+	if(particle.y < origin.y)return 0;
+	if(particle.y > origin.y+volume.y)return 0;
+
+	if(particle.z < origin.z)return 0;
+	if(particle.z > origin.z+volume.z)return 0;
+	return 1;
+}
+
+
+
+void fluid_accumulate_velocity(vec3 *v, vec3 *p, vorton *vort)
+{
+	float distmag;
+	float oneOverDist;
+	float distLaw;
+	float radius = 50.0f;
+	float rad2 = radius * radius;
+	vec3 dist, w, result;
+	dist = sub(*p, vort->p);
+
+	distmag = mag(dist) + 0.001;
+	oneOverDist = finvsqrt(distmag);
+//	vect_smul(&dir, &dist, oneOverDist);
+	distLaw = (distmag < rad2)
+		? (oneOverDist / rad2) : (oneOverDist / distmag);
+
+	dist = mul(dist, distLaw);
+	w = mul(vort->w,
+//		(1.0f / (4.0f * 3.1415926535f)) * (8.0f * rad2 * radius));
+		0.636619772367f * rad2 * radius);
+	result = vec3_cross(w, dist);
+	*v = add(*v, result);
+
+}
+
 
 
 void fluid_vorton_exchange(vorton *left, vorton *right)
