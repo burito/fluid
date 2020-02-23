@@ -37,4 +37,4 @@ struct octtree {
 };
 
 struct octtree* octree_init(uint32_t size);
-void octtree_init(struct octtree* octtree);
+void octtree_free(struct octtree* octtree);

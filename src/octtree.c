@@ -53,7 +53,7 @@ struct octtree* octree_init(uint32_t size)
 	return ret;
 }
 
-void octtree_init(struct octtree* octtree)
+void octtree_free(struct octtree* octtree)
 {
 	free(octtree->node_pool);
 	free(octtree);
