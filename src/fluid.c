@@ -388,7 +388,6 @@ void fluid_stretch_tilt(fluid_sim *sim)
 	vorton_list * this;
 	int layer = fluid_tree_size(sim->depth - 1);
 	int offset;
-	vec3 dw, *vw;
 
 	this = sim->vortons;
 	while(this)
@@ -402,33 +401,17 @@ void fluid_stretch_tilt(fluid_sim *sim)
 		offset = layer+cell_offset(px,py,pz);
 		// FIXME: this line causes a segfault
 		// compute jacobian matrix
-		float u,v,w;
-		u = sim->tree[offset].v.x - // TODO: segfault
+		vec3 diff;
+		diff.x = sim->tree[offset].v.x - // TODO: segfault
 			sim->tree[layer+cell_offset(px+1,py,pz)].v.x;
-		v = sim->tree[offset].v.y -
+		diff.y = sim->tree[offset].v.y -
 			sim->tree[layer+cell_offset(px,py+1,pz)].v.x;
-		w = sim->tree[offset].v.z -
+		diff.z = sim->tree[offset].v.z -
 			sim->tree[layer+cell_offset(px,py,pz+1)].v.x;
 
-		float x,y,z;
-		x = sim->step.x;
-		y = sim->step.y;
-		z = sim->step.z;
-//  1x 1y 1z   a d g
-//  2x 2y 2z = b e h
-//  3x 3y 3z   c f i
-		vec3 j1 = {{u/x, u/y, u/z}};
-		vec3 j2 = {{v/x, v/y, v/z}};
-		vec3 j3 = {{w/x, w/y, w/z}};
-
+		mat3x3 jacobian = vec3_jacobian_vec3(diff, sim->step);
 		// multiply jacobian by vorticity vector
-		vw = &this->vort->w;
-
-		// dw = mul(j, vw);
-
-		dw.x = j1.x * vw->x + j1.y * vw->y + j1.z * vw->z;
-		dw.y = j2.x * vw->x + j2.y * vw->y + j2.z * vw->z;
-		dw.z = j3.x * vw->x + j3.y * vw->y + j3.z * vw->z;
+		vec3 dw = mul(jacobian, this->vort->w);
 
 #define TILT_FUDGE 0.2f
 		// integrate with euler
