@@ -36,7 +36,7 @@ This may not be necessary anymore.
 * Install [Git for Windows](https://git-scm.com/download/win)
 * Install [msys2-x86_64-20190524.exe](https://www.msys2.org/)
 ```bash
-pacman -S mingw-w64-x86_64-gcc mingw-w64-x86_64-imagemagick mingw-w64-x86_64-clang-tools-extra msys/man-pages-posix
+pacman -S mingw-w64-x86_64-gcc mingw-w64-x86_64-imagemagick mingw-w64-x86_64-clang mingw-w64-x86_64-clang-tools-extra msys/man-pages-posix --disable-download-timeout
 ```
 
 ### Linux
