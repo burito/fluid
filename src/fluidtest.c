@@ -83,6 +83,7 @@ void fluidtest_init(void)
 	struct vorton* vorton = &sim->vortons[sim->octtree->node_pool_size];
 	vorton->p = (vec3){{0.5, 0.5, 0.5}};
 	vorton->w = (vec3){{0.5, 0.0, 0.0}};
+	sim->vorton_count++;
 
 	glGenVertexArrays(1, &va_fluid);
 	glBindVertexArray(va_fluid);
@@ -127,8 +128,8 @@ void fluidtest_tick(void)
 {
 	// advec3 the fluid
 	fluid_tree_update(sim);
-//	fluid_tick(sim);
-//	fluid_advect_tracers(sim, particles, n_part);
+	fluid_tick(sim);
+	fluid_advect_tracers(sim, particles, n_part);
 	// for(int i=0; i< n_part; i++)
 	// {
 	// 	fluid_bound(sim, &particles[i]);

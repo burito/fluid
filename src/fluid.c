@@ -189,7 +189,7 @@ vec3 fluid_accumulate_velocity(struct vorton vorton, vec3 position)
 	float distmag;
 	float oneOverDist;
 	float distLaw;
-	float radius = 50.0f;
+	float radius = 0.5f;
 	float rad2 = radius * radius;
 	vec3 distance = sub(position, vorton.p);
 
@@ -218,7 +218,7 @@ void fluid_vorton_exchange(struct vorton *left, struct vorton *right)
 	right->w = add(right->w, exchange);
 }
 
-
+/*
 void fluid_diffuse(struct fluid_sim *sim)
 {
 	vorton* this;
@@ -270,14 +270,14 @@ void fluid_diffuse(struct fluid_sim *sim)
 		}
 	}
 }
-
+*/
 // find the velocity of the fluid at a given position
 vec3 fluid_tree_velocity(struct fluid_sim *sim, vec3 position)
 {
 	vec3 rel_position = sub(position, sim->octtree->origin);
 	vec3 half_volume = sim->octtree->volume;
 	vec3 result = (vec3){{0,0,0}};
-	struct octtree_node* nodes = &sim->octtree->node_pool;
+	struct octtree_node* nodes = sim->octtree->node_pool;
 	int here = 0;
 	for(int i=0; i<sim->max_depth; i++)
 	{
@@ -296,7 +296,7 @@ vec3 fluid_tree_velocity(struct fluid_sim *sim, vec3 position)
 	return result;
 }
 
-
+/*
 void fluid_velocity_grid(struct fluid_sim *sim)
 {
 	int layer = fluid_tree_size(sim->depth - 1);
@@ -415,7 +415,7 @@ void fluid_stretch_tilt(struct fluid_sim *sim)
 		*w = add(*w, mul(dw, deltatime * 0.2));
 	}
 }
-
+*/
 void fluid_advect_tracers(struct fluid_sim *sim, struct particle *particles, int count)
 {
 	float deltatime = 1.0f / 60.0f;
@@ -424,7 +424,8 @@ void fluid_advect_tracers(struct fluid_sim *sim, struct particle *particles, int
 	{
 		if( particle_inside_bound(particles[i].p, sim->octtree->origin, sim->octtree->volume) )
 		{
-			vec3 velocity = fluid_interpolate_velocity(sim, particles[i].p);
+//			vec3 velocity = fluid_interpolate_velocity(sim, particles[i].p);
+			vec3 velocity = fluid_tree_velocity(sim, particles[i].p);
 			velocity = mul(velocity, deltatime);
 			particles[i].p = add(particles[i].p, velocity);
 		}
@@ -432,6 +433,7 @@ void fluid_advect_tracers(struct fluid_sim *sim, struct particle *particles, int
 
 }
 
+/*
 void fluid_advect_vortons(struct fluid_sim *sim)
 {
 	float deltatime = 1.0f / 60.0f;
@@ -447,7 +449,7 @@ void fluid_advect_vortons(struct fluid_sim *sim)
 		}
 	}
 }
-
+*/
 
 void fluid_tick(struct fluid_sim *sim)
 {
@@ -458,6 +460,7 @@ void fluid_tick(struct fluid_sim *sim)
 //	fluid_advect_vortons(sim);
 }
 
+/*
 void fluid_bound(struct fluid_sim *sim, vec3 position)
 {
 	float step;
@@ -494,3 +497,4 @@ void fluid_update_box(struct fluid_sim *sim)
 	sim->oneOverStep.y = 1.0f / sim->step.y;
 	sim->oneOverStep.z = 1.0f / sim->step.z;
 }
+*/
