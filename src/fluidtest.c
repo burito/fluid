@@ -39,7 +39,7 @@ freely, subject to the following restrictions:
 static void fluidtest_build_lines(void);
 
 
-fluid_sim * sim;
+struct fluid_sim * sim;
 struct particle *particles;
 int n_part;
 
@@ -56,8 +56,6 @@ vec3 *line_vecs;
 void fluidtest_init(void)
 {
 	float s;
-	vorton_list * list;
-	vorton *vort;
 
 	n_part = 30*30*30;
 	particles = malloc(sizeof(struct particle)*n_part + 30*30);
@@ -82,18 +80,9 @@ void fluidtest_init(void)
 
 	sim = fluid_init(s,s,s, 3);
 
-	list = malloc(sizeof(vorton_list));
-	vort = malloc(sizeof(vorton));
-
-	list->prev = list->next = NULL;
-	list->vort = vort;
-
-	memset(vort, 0, sizeof(vorton));
-	vort->p.x = vort->p.y = 0.5f;
-	vort->p.z = 0.5f;
-	vort->w.x = 0.5f;
-
-	sim->vortons = list;
+	struct vorton* vorton = &sim->vortons[sim->octtree->node_pool_size];
+	vorton->p = (vec3){{0.5, 0.5, 0.5}};
+	vorton->w = (vec3){{0.5, 0.0, 0.0}};
 
 	glGenVertexArrays(1, &va_fluid);
 	glBindVertexArray(va_fluid);
@@ -119,6 +108,7 @@ void fluidtest_init(void)
 	shader_uniform(line_shader, "modelview");
 	shader_uniform(line_shader, "projection");
 
+/*
 	line_vecs = malloc((sim->cells+1)*(sim->cells+1)*6 * sizeof(vec3));
 	fluidtest_build_lines();
 	glGenVertexArrays(1, &va_fluid_line_vecs);
@@ -130,13 +120,15 @@ void fluidtest_init(void)
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 12, (void*)0);
 	glBindVertexArray(0);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
+*/
 }
 
 void fluidtest_tick(void)
 {
 	// advec3 the fluid
-	fluid_tick(sim);
-	fluid_advect_tracers(sim, particles, n_part);
+	fluid_tree_update(sim);
+//	fluid_tick(sim);
+//	fluid_advect_tracers(sim, particles, n_part);
 	// for(int i=0; i< n_part; i++)
 	// {
 	// 	fluid_bound(sim, &particles[i]);
@@ -162,13 +154,14 @@ void f_diag2(void)
 //	off = pos_to_offset(sim, sim->depth, &t);
 
 	log_debug("Off = %d\n", off);
-	log_debug("CellV x=%f, y=%f, z=%f\n", 
+	log_debug("CellV x=%f, y=%f, z=%f\n",
 	sim->tree[off].v.x,
 	sim->tree[off].v.y,
 	sim->tree[off].v.z);
 }
 */
 
+/*
 static void fluidtest_build_lines(void)
 {
 	for(int x=0; x<= sim->cells; x++)
@@ -197,7 +190,7 @@ static void fluidtest_build_lines(void)
 
 		line_vecs[ (i*6)+4 ] = (vec3){{
 				sim->origin.x + sim->step.x * (float)x,
-				sim->origin.y, 
+				sim->origin.y,
 				sim->origin.z + sim->step.z * (float)y}};
 		line_vecs[ (i*6)+5 ] = (vec3){{
 				sim->origin.x + sim->step.x * (float)x,
@@ -208,7 +201,7 @@ static void fluidtest_build_lines(void)
 	glBindBuffer(GL_ARRAY_BUFFER, b_fluid_line_vecs);
 	glBufferData(GL_ARRAY_BUFFER, (sim->cells+1)*(sim->cells+1)*6 * sizeof(vec3), line_vecs, GL_DYNAMIC_DRAW);
 }
-
+*/
 
 void fluidtest_draw(mat4x4 modelview, mat4x4 projection)
 {
@@ -222,13 +215,13 @@ void fluidtest_draw(mat4x4 modelview, mat4x4 projection)
 	glBufferData(GL_ARRAY_BUFFER, n_part * sizeof(struct particle), particles, GL_DYNAMIC_DRAW);
 	glDrawArrays( GL_POINTS, 0, 30*30*30);
 
+/*
 	// draw a bounding volume
 	glUseProgram(line_shader->prog);
 	glUniformMatrix4fv(line_shader->unif[0], 1, GL_FALSE, modelview.f);
 	glUniformMatrix4fv(line_shader->unif[1], 1, GL_FALSE, projection.f);
 	glBindVertexArray( va_fluid_line_vecs );
 	fluidtest_build_lines();
-
 	glDrawArrays( GL_LINES, 0, (sim->cells+1)*(sim->cells+1)*6);
-
+*/
 }

@@ -30,7 +30,7 @@ freely, subject to the following restrictions:
 #include "octtree.h"
 #include "3dmaths.h"
 
-struct octtree* octree_init(uint32_t size)
+struct octtree* octtree_init(uint32_t size)
 {
 	struct octtree *ret;
 	ret = malloc(sizeof(struct octtree));
@@ -63,4 +63,65 @@ void octtree_empty(struct octtree* octtree)
 {
 	memset(octtree->node_pool, 0, octtree->node_pool_size * sizeof(struct octtree_node));
 	octtree->node_count = 0;
+}
+
+
+
+int octtree_child_position(vec3 position, vec3 half_volume)
+{
+	int offset = 0;
+	if(position.x > half_volume.x)offset += 1;
+	if(position.y > half_volume.y)offset += 2;
+	if(position.z > half_volume.z)offset += 4;
+	return offset;
+}
+
+vec3 octtree_child_relative(vec3 position, vec3 half_volume)
+{
+	vec3 ret = position;
+	if(position.x > half_volume.x)ret.x = ret.x-half_volume.x;
+	if(position.y > half_volume.y)ret.y = ret.z-half_volume.y;
+	if(position.z > half_volume.z)ret.z = ret.z-half_volume.z;
+	return ret;
+}
+
+int octtree_find(struct octtree* octtree, vec3 position, int depth)
+{
+	vec3 rel_position = sub(position, octtree->origin);
+	if(vec3_lessthan_vec3(rel_position, (vec3){{0,0,0}}))
+	{
+		log_warning("Tested vector is less than Origin");
+		return 0;
+	}
+	if(vec3_greaterthan_vec3(rel_position, octtree->volume))
+	{
+		log_warning("Tested vector is greater than Volume");
+		return 0;
+	}
+
+	vec3 node_volume = octtree->volume;
+	int current_node = 0;
+	for(int i=0; i<=depth; i++)
+	{
+		node_volume = mul(node_volume, 0.5);
+		int offset = octtree_child_position(rel_position, node_volume);
+		rel_position = octtree_child_relative(rel_position, node_volume);
+		// no node here, add one
+		if(octtree->node_pool[current_node].node[offset] == 0)
+		{
+			if(octtree->node_count >= octtree->node_pool_size)
+			{
+				log_warning("Attempted to add too many nodes");
+				return 0;
+			}
+			octtree->node_pool[current_node].node[offset] = octtree->node_count;
+			octtree->node_count++;
+		}
+		current_node = octtree->node_pool[current_node].node[offset];
+		if(i >= depth)
+		{
+			return current_node;
+		}
+	}
+	return 0;
 }

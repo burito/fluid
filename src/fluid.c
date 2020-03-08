@@ -28,8 +28,9 @@ freely, subject to the following restrictions:
 
 #include "fluid.h"
 #include "log.h"
+#include "octtree.h"
 
-
+// Initialise the Fluid Sim, allocating memory and all that.
 struct fluid_sim* fluid_init(float x, float y, float z, int max_depth)
 {
 	struct fluid_sim *sim;
@@ -41,7 +42,7 @@ struct fluid_sim* fluid_init(float x, float y, float z, int max_depth)
 		return NULL;
 	}
 	memset(sim, 0, sizeof(struct fluid_sim));
-	sim->octtree = octree_init(20);
+	sim->octtree = octtree_init(20);
 	if(sim->octtree == NULL)
 	{
 		log_fatal("octtree_init() failed");
@@ -49,7 +50,7 @@ struct fluid_sim* fluid_init(float x, float y, float z, int max_depth)
 		return NULL;
 	}
 	sim->max_depth = 5; // chosen by fair dice roll
-	sim->max_vortons = 10;	// why not
+	sim->max_vortons = 20+10;	// why not
 	sim->vortons = malloc(sim->max_vortons * sizeof(struct vorton));
 	if(sim->vortons == NULL)
 	{
@@ -63,6 +64,7 @@ struct fluid_sim* fluid_init(float x, float y, float z, int max_depth)
 	return sim;
 }
 
+// Free the memory allocated by the sim
 void fluid_end(struct fluid_sim *sim)
 {
 	octtree_free(sim->octtree);
@@ -70,140 +72,165 @@ void fluid_end(struct fluid_sim *sim)
 	free(sim);
 }
 
-
-void fluid_tree_update(struct fluid_sim *sim)
+// Used by fluid_sim_update()
+// Adds a vorton to the octtree, adding it's values to each node
+// in the octtree as it moves down
+void fluid_octtree_add_vorton(struct fluid_sim *sim, int j)
 {
-	int poff;
-	float weight;
-	float magnitude;
-
-	// delete the vorton list on each leaf node, and each vorton
-	octtree_empty(sim->octtree);
-
-	// walk all vortons, assigning them to a leaf node in the octtree
-	for(int i=0; i<sim->vorton_count; i++)
+	struct octtree* octtree = sim->octtree;
+	struct vorton* vorton = &sim->vortons[j];
+	vec3 position = vorton->p;
+	vec3 rel_position = sub(position, octtree->origin);
+	if(vec3_lessthan_vec3(rel_position, (vec3){{0,0,0}}))
 	{
-		struct vorton *vorton = &sim->vortons[i];
-		parent = &sim->tree[pos_to_offset(sim, sim->depth, &this->vort->p)];
-		this->vort->next = parent->next;
-		parent->next = this->vort;
-		this = this->next;
+		log_warning("Tested vector is less than Origin");
+		return;
+	}
+	if(vec3_greaterthan_vec3(rel_position, octtree->volume))
+	{
+		log_warning("Tested vector is greater than Volume");
+		return;
 	}
 
-	// weighted average the list of vortons on each leaf node
-	for(int i = fluid_tree_size(sim->depth-1); i< fluid_tree_size(sim->depth); i++)
+	vec3 node_volume = octtree->volume;
+	int current_node_index = 0;
+	// for each step down the octtree
+	for(int i=0; i<=sim->max_depth; i++)
 	{
-		parent = &sim->tree[i];
-		child = parent->next;
-		weight = 0.000000001;
-		while(child)
+		struct vorton *current_node = &sim->vortons[current_node_index];
+
+		// add the current vorton to this node
+		if(current_node->count == 0)
 		{
-			magnitude = sqrt(mag(child->w));//sqrt() may be optional
-			child->magnitude = magnitude;
-			weight += magnitude;
-			parent->w = add(mul(child->w, magnitude), parent->w);
-			parent->p = add(mul(child->p, magnitude), parent->p);
-			child = child->next;
+			*current_node = *vorton;
+			current_node->count = 1;
+			float magnitude = sqrt(mag(vorton->w));//sqrt() may be optional
+			current_node->p = mul(vorton->p, magnitude);
+			current_node->magnitude = magnitude;
 		}
-		parent->w = div(parent->w, weight);
-		parent->p = div(parent->p, weight);
-		parent->p = sub(parent->p, sim->origin);
-	}
-
-	// weighted average each branch of the oct-tree to its parent node
-	poff = fluid_tree_size(sim->depth-1);
-	while(poff)
-	{
-		poff--;
-		weight = 0.0000000001;
-		parent = &sim->tree[poff];
-		memset(parent, 0, sizeof(vorton));
-		for(int i=0; i<8; i++)
+		else
 		{
-			child = &sim->tree[(poff<<3)+i];
-			magnitude = sqrt(mag(child->w));//sqrt() may be optional
-			child->magnitude = magnitude;
-			weight += magnitude;
-			parent->w = add(mul(child->w, magnitude), parent->w);
-			parent->p = add(mul(child->p, magnitude), parent->p);
-
+			// find the magnitude of the vorton
+			float magnitude = sqrt(mag(vorton->w));//sqrt() may be optional
+			// position is weighted proportionally to the magnitude of the vorton
+			current_node->p = add(mul(vorton->p, magnitude), current_node->p);
+			current_node->magnitude += magnitude;
+			current_node->w = add(current_node->w, vorton->w);
+			current_node->v = add(current_node->v, vorton->v);
+			current_node->count++;
 		}
-		parent->weight = weight;
-		parent->w = div(parent->w, weight);
-		parent->p = div(parent->p, weight);
-	}
 
+		// if we've reached max_depth, we're finished
+		if(i >= sim->max_depth)
+		{
+			return;
+		}
+
+		// find the child in which the current vorton belongs
+		node_volume = mul(node_volume, 0.5);
+		int offset = octtree_child_position(rel_position, node_volume);
+		rel_position = octtree_child_relative(rel_position, node_volume);
+		// no node here, add one
+		if(octtree->node_pool[current_node_index].node[offset] == 0)
+		{
+			if(octtree->node_count >= octtree->node_pool_size)
+			{
+				log_warning("Attempted to add too many nodes");
+				return;
+			}
+			octtree->node_pool[current_node_index].node[offset] = octtree->node_count;
+			octtree->node_count++;
+		}
+		current_node_index = octtree->node_pool[current_node_index].node[offset];
+	}
 }
 
 
+// Adds all of the Vortons to the Octtree, ready for processing a frame
+void fluid_tree_update(struct fluid_sim *sim)
+{
+	// delete the vorton list on each leaf node, and each vorton
+	octtree_empty(sim->octtree);
+	// reset the vortons that represent the octtree
+	memset(sim->vortons, 0, sizeof(struct vorton)*sim->octtree->node_pool_size);
+
+	// walk all vortons, adding them to each octtree node in their chain
+	for(int i=sim->octtree->node_pool_size; i<sim->vorton_count+sim->octtree->node_pool_size; i++)
+	{
+		fluid_octtree_add_vorton(sim, i);
+	}
+
+	// average each branch of the oct-tree
+	for(int i=0; i<sim->octtree->node_count; i++)
+	{
+		struct vorton* vorton = &sim->vortons[i];
+		// position is weighted average, based on magnitude of w
+		vorton->p = div(vorton->p, vorton->magnitude);
+		vorton->w = div(vorton->w, vorton->count);
+		vorton->v = div(vorton->v, vorton->count);
+	}
+}
+
+
+// Check if a particle is inside a volume.
 int particle_inside_bound(vec3 particle, vec3 origin, vec3 volume)
 {
-	if(particle.x < origin.x)return 0;
-	if(particle.x > origin.x+volume.x)return 0;
-
-	if(particle.y < origin.y)return 0;
-	if(particle.y > origin.y+volume.y)return 0;
-
-	if(particle.z < origin.z)return 0;
-	if(particle.z > origin.z+volume.z)return 0;
+	vec3 rel_position = sub(particle, origin);
+	if(vec3_lessthan_vec3(rel_position, (vec3){{0,0,0}}))
+		return 0;
+	if(vec3_greaterthan_vec3(rel_position, volume))
+		return 0;
 	return 1;
 }
 
-
-
-void fluid_accumulate_velocity(vec3 *v, vec3 *p, vorton *vort)
+// determine the velocity imparted on a position by a single vorton
+vec3 fluid_accumulate_velocity(struct vorton vorton, vec3 position)
 {
 	float distmag;
 	float oneOverDist;
 	float distLaw;
 	float radius = 50.0f;
 	float rad2 = radius * radius;
-	vec3 dist, w, result;
-	dist = sub(*p, vort->p);
+	vec3 distance = sub(position, vorton.p);
 
-	distmag = mag(dist) + 0.001;
+	distmag = mag(distance) + 0.001f;
 	oneOverDist = finvsqrt(distmag);
 //	vect_smul(&dir, &dist, oneOverDist);
 	distLaw = (distmag < rad2)
 		? (oneOverDist / rad2) : (oneOverDist / distmag);
 
-	dist = mul(dist, distLaw);
-	w = mul(vort->w,
+	distance = mul(distance, distLaw);
+	vec3 w = mul(vorton.w,
 //		(1.0f / (4.0f * 3.1415926535f)) * (8.0f * rad2 * radius));
 		0.636619772367f * rad2 * radius);
-	result = vec3_cross(w, dist);
-	*v = add(*v, result);
-
+	return vec3_cross(w, distance);
 }
 
 
-
-void fluid_vorton_exchange(vorton *left, vorton *right)
+// exchange the vorticity between two vortons
+void fluid_vorton_exchange(struct vorton *left, struct vorton *right)
 {
 	float viscosity = 0.01f;
 	float deltatime = 1.0f / 60.0f;
-	vec3 delta, exchange;
-	delta = sub(left->w, right->w);
-	exchange = mul(delta, viscosity * deltatime);
+	vec3 delta = sub(left->w, right->w);
+	vec3 exchange = mul(delta, viscosity * deltatime);
 	left->w = sub(left->w, exchange);
 	right->w = add(right->w, exchange);
 }
 
 
-void fluid_diffuse(fluid_sim *sim)
+void fluid_diffuse(struct fluid_sim *sim)
 {
 	vorton* this;
 	vorton* other;
-	vec3 temp;
 	int layer = fluid_tree_size(sim->depth - 1);
-	int step;
 
 	int cells = sim->cells - 1;
-	for(int x = 0; x < cells; x++)
-	for(int y = 0; y < cells; y++)
-	for(int z = 0; z < cells; z++)
+	for(int x=0; x<cells; x++)
+	for(int y=0; y<cells; y++)
+	for(int z=0; z<cells; z++)
 	{
-		step = 0;
+		int step = 0;
 		this = sim->tree[layer+cell_offset(x,y,z)].next;
 		while(this)
 		{
@@ -235,7 +262,7 @@ void fluid_diffuse(fluid_sim *sim)
 			}
 			else
 			{ // viscosity
-				temp = mul(this->w, (1.0f/60.0f) * 0.01f);
+				vec3 temp = mul(this->w, (1.0f/60.0f) * 0.01f);
 				this->w = sub(this->w, temp);
 				step = 0;
 				this = this->next;
@@ -244,33 +271,33 @@ void fluid_diffuse(fluid_sim *sim)
 	}
 }
 
-
-void fluid_tree_velocity(fluid_sim *sim, vec3 *result, vec3 *pos)
+// find the velocity of the fluid at a given position
+vec3 fluid_tree_velocity(struct fluid_sim *sim, vec3 position)
 {
-	vec3 tpos;
-	int layer = fluid_tree_size(sim->depth-1);
-	int offset = pos_to_offset(sim, sim->depth, pos)-layer;
-
-	tpos = sub(*pos, sim->origin);
-
-	*result = (vec3){{0.0, 0.0, 0.0}};
-	fluid_accumulate_velocity(result, &tpos, &sim->tree[offset] );
-	while(offset)
+	vec3 rel_position = sub(position, sim->octtree->origin);
+	vec3 half_volume = sim->octtree->volume;
+	vec3 result = (vec3){{0,0,0}};
+	struct octtree_node* nodes = &sim->octtree->node_pool;
+	int here = 0;
+	for(int i=0; i<sim->max_depth; i++)
 	{
-		int parent = offset & 0xFFFFFFF8;
-		int child = offset & 7;
-		for(int i=0; i<8; i++)
-		if(i != child)
-		{
-			fluid_accumulate_velocity(result, &tpos, &sim->tree[layer+parent+i]);
-		}
-		offset = offset >> 3;
-		layer = layer >> 3;
+		result = add(result, fluid_accumulate_velocity(sim->vortons[here], rel_position));
+		// TODO: remove child from result
+
+		// find which child node to descend into
+		half_volume = mul(half_volume, 0.5);
+		int branch = octtree_child_position(rel_position, half_volume);
+		here = nodes[here].node[branch];
+
+		// does the child node exist?
+		if(here == 0)
+			break;
 	}
+	return result;
 }
 
 
-void fluid_velocity_grid(fluid_sim *sim)
+void fluid_velocity_grid(struct fluid_sim *sim)
 {
 	int layer = fluid_tree_size(sim->depth - 1);
 
@@ -280,9 +307,9 @@ void fluid_velocity_grid(fluid_sim *sim)
 	for(int z = 1; z < cells; z++)
 	{
 		vec3 *v = &sim->tree[layer + cell_offset(x,y,z)].v;
-		vec3 pos = {{x,y,z}};
-		pos = add(mul(pos, sim->step), sim->origin);
-		fluid_tree_velocity(sim, v, &pos);
+		vec3 pos = (vec3){{x,y,z}};
+		pos = add(mul(pos, sim->step), sim->octtree->origin);
+		*v = fluid_tree_velocity(sim, pos);
 	}
 }
 
@@ -292,24 +319,24 @@ float mix(float x, float y, float a)
 }
 
 
-void fluid_interpolate_velocity(fluid_sim *sim, vec3 *result, vec3 *pos)
+vec3 fluid_interpolate_velocity(struct fluid_sim *sim, vec3 pos)
 {
 	int layer = fluid_tree_size(sim->depth - 1);
 
-	vec3 rpos = sub(*pos, sim->origin);
-	if( rpos.x < 0.0f || rpos.x > sim->size.x )
+	vec3 rpos = sub(pos, sim->octtree->origin);
+	if( rpos.x < 0.0f || rpos.x > sim->octtree->volume.x )
 	{
-		log_warning("Flail x! x=%f, y=%f, z=%f", pos->x, pos->y, pos->z);
+		log_warning("Flail x! x=%f, y=%f, z=%f", pos.x, pos.y, pos.z);
 		return;
 	}
-	if( rpos.y < 0.0f || rpos.y > sim->size.y )
+	if( rpos.y < 0.0f || rpos.y > sim->octtree->volume.y )
 	{
-		log_warning("Flail y! x=%f, y=%f, z=%f", pos->x, pos->y, pos->z);
+		log_warning("Flail y! x=%f, y=%f, z=%f", pos.x, pos.y, pos.z);
 		return;
 	}
-	if( rpos.z < 0.0f || rpos.z > sim->size.z )
+	if( rpos.z < 0.0f || rpos.z > sim->octtree->volume.z )
 	{
-		log_warning("Flail z! x=%f, y=%f, z=%f", pos->x, pos->y, pos->z);
+		log_warning("Flail z! x=%f, y=%f, z=%f", pos.x, pos.y, pos.z);
 		return;
 	}
 
@@ -347,132 +374,123 @@ void fluid_interpolate_velocity(fluid_sim *sim, vec3 *result, vec3 *pos)
 	vec3 w1 = add(mul(i1, iyd), mul(i2, yd));
 	vec3 w2 = add(mul(j1, iyd), mul(j2, yd));
 
-	*result = add(mul(w1, ixd), mul(w2, xd));
+	return add(mul(w1, ixd), mul(w2, xd));
 }
 
-void fluid_stretch_tilt(fluid_sim *sim)
+void fluid_stretch_tilt(struct fluid_sim *sim)
 {
 	float deltatime = 1.0f / 60.0f;
-	vorton_list * this;
 	int layer = fluid_tree_size(sim->depth - 1);
 	int offset;
 
-	this = sim->vortons;
-	while(this)
+	for(int i=sim->octtree->node_pool_size; i<sim->vorton_count; i++)
 	{
-		if( particle_inside_bound(this->vort->p, sim->origin, sim->size) )
-		{
+		struct vorton* vorton = &sim->vortons[i];
+		if( !particle_inside_bound(vorton->p, sim->octtree->origin, sim->octtree->volume) )
+			continue;
 
-			vec3 p = sub(this->vort->p, sim->origin);
+		vec3 p = sub(vorton->p, sim->origin);
 
-			int px = (int)(p.x / sim->step.x);
-			int py = (int)(p.y / sim->step.y);
-			int pz = (int)(p.z / sim->step.z);
+		int px = (int)(p.x / sim->step.x);
+		int py = (int)(p.y / sim->step.y);
+		int pz = (int)(p.z / sim->step.z);
 
-			offset = layer+cell_offset(px,py,pz);
-			// FIXME: this line causes a segfault
-			// compute jacobian matrix
-			vec3 diff;
-			diff.x = sim->tree[offset].v.x - // TODO: segfault
-				sim->tree[layer+cell_offset(px+1,py,pz)].v.x;
-			diff.y = sim->tree[offset].v.y -
-				sim->tree[layer+cell_offset(px,py+1,pz)].v.x;
-			diff.z = sim->tree[offset].v.z -
-				sim->tree[layer+cell_offset(px,py,pz+1)].v.x;
+		offset = layer+cell_offset(px,py,pz);
+		// FIXME: this line causes a segfault
+		// compute jacobian matrix
+		vec3 diff;
+		diff.x = sim->tree[offset].v.x - // TODO: segfault
+			sim->tree[layer+cell_offset(px+1,py,pz)].v.x;
+		diff.y = sim->tree[offset].v.y -
+			sim->tree[layer+cell_offset(px,py+1,pz)].v.x;
+		diff.z = sim->tree[offset].v.z -
+			sim->tree[layer+cell_offset(px,py,pz+1)].v.x;
 
-			mat3x3 jacobian = vec3_jacobian_vec3(diff, sim->step);
-			// multiply jacobian by vorticity vector
-			vec3 dw = mul(jacobian, this->vort->w);
+		mat3x3 jacobian = vec3_jacobian_vec3(diff, sim->step);
+		// multiply jacobian by vorticity vector
+		vec3 dw = mul(jacobian, vorton->w);
 
-#define TILT_FUDGE 0.2f
-			// integrate with euler
-			vec3 *w = &this->vort->w;
-			*w = add(*w, mul(dw, deltatime * TILT_FUDGE));
-#undef TILT_FUDGE
-		}
-		this = this->next;
+		// integrate with euler
+		vec3 *w = &vorton->w;
+		*w = add(*w, mul(dw, deltatime * 0.2));
 	}
 }
 
-void fluid_advect_tracers(fluid_sim *sim, struct particle *particles,
-		int count)
+void fluid_advect_tracers(struct fluid_sim *sim, struct particle *particles, int count)
 {
 	float deltatime = 1.0f / 60.0f;
-	vec3 velocity;
 
 	for(int i=0; i<count; i++)
 	{
-		if( !particle_inside_bound(particles[i].p, sim->origin, sim->size) )
-			continue;
-		fluid_interpolate_velocity(sim, &velocity, &particles[i].p);
-		velocity = mul(velocity, deltatime);
-		particles[i].p = add(particles[i].p, velocity);
+		if( particle_inside_bound(particles[i].p, sim->octtree->origin, sim->octtree->volume) )
+		{
+			vec3 velocity = fluid_interpolate_velocity(sim, particles[i].p);
+			velocity = mul(velocity, deltatime);
+			particles[i].p = add(particles[i].p, velocity);
+		}
 	}
 
 }
 
-void fluid_advect_vortons(fluid_sim *sim)
+void fluid_advect_vortons(struct fluid_sim *sim)
 {
 	float deltatime = 1.0f / 60.0f;
-	vec3 velocity;
-	vorton_list *this = sim->vortons;
 
-	while(this)
+	for(int i=sim->octtree->node_pool_size; i<sim->vorton_count; i++)
 	{
-		if( particle_inside_bound(this->vort->p, sim->origin, sim->size) )
+		struct vorton* vorton = &sim->vortons[i];
+		if( particle_inside_bound(vorton->p, sim->octtree->origin, sim->octtree->volume) )
 		{
-			fluid_interpolate_velocity(sim, &velocity, &this->vort->p);
+			vec3 velocity = fluid_interpolate_velocity(sim, vorton->p);
 			velocity = mul(velocity, deltatime);
-			this->vort->p = add(this->vort->p, velocity);
+			vorton->p = add(vorton->p, velocity);
 		}
-		this = this->next;
 	}
 }
 
 
-void fluid_tick(fluid_sim *sim)
+void fluid_tick(struct fluid_sim *sim)
 {
 	fluid_tree_update(sim);
-	fluid_diffuse(sim);
-	fluid_velocity_grid(sim);
-	fluid_stretch_tilt(sim);
-	fluid_advect_vortons(sim);
+//	fluid_diffuse(sim);
+//	fluid_velocity_grid(sim);
+//	fluid_stretch_tilt(sim);
+//	fluid_advect_vortons(sim);
 }
 
-void fluid_bound(fluid_sim *sim, struct particle *pos)
+void fluid_bound(struct fluid_sim *sim, vec3 position)
 {
 	float step;
 
 	step = sim->step.x * 2.0f;
 
-	if(pos->p.x < sim->origin.x+step)
-		sim->origin.x = pos->p.x - step;
-	if(pos->p.x > sim->origin.x + sim->size.x - step)
-		sim->size.x = pos->p.x - sim->origin.x + step;
+	if(position.x < sim->octtree->origin.x+step)
+		sim->octtree->origin.x = position.x - step;
+	if(position.x > sim->octtree->origin.x + sim->octtree->volume.x - step)
+		sim->octtree->volume.x = position.x - sim->octtree->origin.x + step;
 
 	step = sim->step.y * 2.0f;
 
-	if(pos->p.y < sim->origin.y+step)
-		sim->origin.y = pos->p.y - step;
-	if(pos->p.y > sim->origin.y + sim->size.y - step)
-		sim->size.y = pos->p.y - sim->origin.y + step;
+	if(position.y < sim->octtree->origin.y+step)
+		sim->octtree->origin.y = position.y - step;
+	if(position.y > sim->octtree->origin.y + sim->octtree->volume.y - step)
+		sim->octtree->volume.y = position.y - sim->octtree->origin.y + step;
 
 	step = sim->step.z * 2.0f;
 
-	if(pos->p.z < sim->origin.z+step)
-		sim->origin.z = pos->p.z - step;
-	if(pos->p.z > sim->origin.z + sim->size.z - step)
-		sim->size.z = pos->p.z - sim->origin.z + step;
+	if(position.z < sim->octtree->origin.z+step)
+		sim->octtree->origin.z = position.z - step;
+	if(position.z > sim->octtree->origin.z + sim->octtree->volume.z - step)
+		sim->octtree->volume.z = position.z - sim->octtree->origin.z + step;
 }
 
-void fluid_update_box(fluid_sim *sim)
+void fluid_update_box(struct fluid_sim *sim)
 {
-	sim->step.x = sim->size.x / (float)sim->cells;
-	sim->step.y = sim->size.y / (float)sim->cells;
-	sim->step.z = sim->size.z / (float)sim->cells;
+	sim->step.x = sim->octtree->volume.x / (float)sim->cells;
+	sim->step.y = sim->octtree->volume.y / (float)sim->cells;
+	sim->step.z = sim->octtree->volume.z / (float)sim->cells;
 
 	sim->oneOverStep.x = 1.0f / sim->step.x;
 	sim->oneOverStep.y = 1.0f / sim->step.y;
 	sim->oneOverStep.z = 1.0f / sim->step.z;
 }
-

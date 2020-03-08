@@ -30,6 +30,7 @@ struct vorton {
 	vec3 v;		// velocity
 	float weight;	// for weighted average
 	float magnitude;
+	int count;
 };
 
 struct fluid_sim {
@@ -45,10 +46,12 @@ struct particle {
 	uint8_t r, g, b, a;
 };
 
-fluid_sim * fluid_init(float x, float y, float z, int depth);
-void fluid_end(fluid_sim *sim);
-void fluid_tick(fluid_sim *sim);
-void fluid_advect_tracers(fluid_sim *sim, struct particle *particles, int count);
-void fluid_bound(fluid_sim *sim, struct particle *pos);
-void fluid_update_box(fluid_sim *sim);
+struct fluid_sim* fluid_init(float x, float y, float z, int depth);
+void fluid_end(struct fluid_sim *sim);
+void fluid_tree_update(struct fluid_sim *sim);
 
+
+void fluid_tick(struct fluid_sim *sim);
+void fluid_advect_tracers(struct fluid_sim *sim, struct particle *particles, int count);
+void fluid_bound(struct fluid_sim *sim, struct particle *pos);
+void fluid_update_box(struct fluid_sim *sim);

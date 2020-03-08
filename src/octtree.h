@@ -21,6 +21,9 @@ freely, subject to the following restrictions:
    distribution.
 */
 
+#ifndef __DPB_OCTTREE_H__
+#define __DPB_OCTTREE_H__
+
 #include <stdint.h>
 #include "3dmaths.h"
 
@@ -31,12 +34,17 @@ struct octtree_node {
 
 struct octtree {
 	uint32_t node_pool_size;
-   uint32_t node_count;
+	uint32_t node_count;
 	struct octtree_node *node_pool;
 	vec3 origin;
 	vec3 volume;
 };
 
-struct octtree* octree_init(uint32_t size);
+struct octtree* octtree_init(uint32_t size);
 void octtree_free(struct octtree* octtree);
 void octtree_empty(struct octtree* octtree);
+int octtree_find(struct octtree* octtree, vec3 position, int depth);
+int octtree_child_position(vec3 position, vec3 half_volume) __attribute__((const));
+vec3 octtree_child_relative(vec3 position, vec3 half_volume) __attribute__((const));
+
+#endif
