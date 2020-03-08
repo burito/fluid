@@ -36,7 +36,7 @@ freely, subject to the following restrictions:
 #include "fluid.h"
 
 
-static void fluidtest_build_lines(void);
+static void fluidtest_build_lines(struct fluid_sim * sim);
 
 
 struct fluid_sim * sim;
@@ -78,10 +78,14 @@ void fluidtest_init(void)
 
 	s = 1.0f;
 
-	sim = fluid_init(s,s,s, 3);
+	sim = fluid_init(s,s,s, 2);
 
 	struct vorton* vorton = &sim->vortons[sim->octtree->node_pool_size];
-	vorton->p = (vec3){{0.5, 0.5, 0.5}};
+	vorton->p = (vec3){{0.2, 0.2, 0.2}};
+	vorton->w = (vec3){{0.5, 0.0, 0.0}};
+	sim->vorton_count++;
+	vorton = &sim->vortons[sim->octtree->node_pool_size+1];
+	vorton->p = (vec3){{0.7, 0.7, 0.7}};
 	vorton->w = (vec3){{0.5, 0.0, 0.0}};
 	sim->vorton_count++;
 
@@ -109,19 +113,21 @@ void fluidtest_init(void)
 	shader_uniform(line_shader, "modelview");
 	shader_uniform(line_shader, "projection");
 
-/*
-	line_vecs = malloc((sim->cells+1)*(sim->cells+1)*6 * sizeof(vec3));
-	fluidtest_build_lines();
+
+	int cells = 1 << (sim->max_depth);
+	int line_vecs_size = (cells+1)*(cells+1)*6 * sizeof(vec3);
+	line_vecs = malloc(line_vecs_size);
+	fluidtest_build_lines(sim);
 	glGenVertexArrays(1, &va_fluid_line_vecs);
 	glBindVertexArray(va_fluid_line_vecs);
 	glGenBuffers(1, &b_fluid_line_vecs);
 	glBindBuffer(GL_ARRAY_BUFFER, b_fluid_line_vecs);
-	glBufferData(GL_ARRAY_BUFFER, (sim->cells+1)*(sim->cells+1)*6 * sizeof(vec3), line_vecs, GL_DYNAMIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, line_vecs_size, line_vecs, GL_DYNAMIC_DRAW);
 	glEnableVertexAttribArray(0);
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 12, (void*)0);
 	glBindVertexArray(0);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
-*/
+
 }
 
 void fluidtest_tick(void)
@@ -162,47 +168,50 @@ void f_diag2(void)
 }
 */
 
-/*
-static void fluidtest_build_lines(void)
+
+static void fluidtest_build_lines(struct fluid_sim* sim)
 {
-	for(int x=0; x<= sim->cells; x++)
-	for(int y=0; y<= sim->cells; y++)
+	int cells = 1 << (sim->max_depth);
+	vec3 step = div(sim->octtree->volume, cells);
+	vec3 size = sim->octtree->volume;
+	for(int x=0; x<= cells; x++)
+	for(int y=0; y<= cells; y++)
 	{
-		int i = y*(sim->cells+1) + x;
+		int i = y*(cells+1) + x;
 		line_vecs[ (i*6)+0 ] = (vec3){{
-				sim->origin.x + sim->step.x * (float)x,
-				sim->origin.y + sim->step.y * (float)y,
-				sim->origin.z }};
+				sim->octtree->origin.x + step.x * (float)x,
+				sim->octtree->origin.y + step.y * (float)y,
+				sim->octtree->origin.z }};
 		line_vecs[ (i*6)+1 ] = (vec3){{
-				sim->origin.x + sim->step.x * (float)x,
-				sim->origin.y + sim->step.y * (float)y,
-				sim->origin.z + sim->size.z}};
+				sim->octtree->origin.x + step.x * (float)x,
+				sim->octtree->origin.y + step.y * (float)y,
+				sim->octtree->origin.z + size.z}};
 //		line_elements[ (i*3)+0 ] = (int2){(i*6)+0, (i*6)+1};
 
 		line_vecs[ (i*6)+2 ] = (vec3){{
-				sim->origin.x,
-				sim->origin.y + sim->step.y * (float)y,
-				sim->origin.z + sim->step.z * (float)x}};
+				sim->octtree->origin.x,
+				sim->octtree->origin.y + step.y * (float)y,
+				sim->octtree->origin.z + step.z * (float)x}};
 		line_vecs[ (i*6)+3 ] = (vec3){{
-				sim->origin.x + sim->size.x,
-				sim->origin.y + sim->step.y * (float)y,
-				sim->origin.z + sim->step.z * (float)x}};
+				sim->octtree->origin.x + size.x,
+				sim->octtree->origin.y + step.y * (float)y,
+				sim->octtree->origin.z + step.z * (float)x}};
 //		line_elements[ (i*3)+1 ] = (int2){(i*6)+2, (i*6)+3};
 
 		line_vecs[ (i*6)+4 ] = (vec3){{
-				sim->origin.x + sim->step.x * (float)x,
-				sim->origin.y,
-				sim->origin.z + sim->step.z * (float)y}};
+				sim->octtree->origin.x + step.x * (float)x,
+				sim->octtree->origin.y,
+				sim->octtree->origin.z + step.z * (float)y}};
 		line_vecs[ (i*6)+5 ] = (vec3){{
-				sim->origin.x + sim->step.x * (float)x,
-				sim->origin.y + sim->size.y,
-				sim->origin.z + sim->step.z * (float)y}};
+				sim->octtree->origin.x + step.x * (float)x,
+				sim->octtree->origin.y + size.y,
+				sim->octtree->origin.z + step.z * (float)y}};
 //		line_elements[ (i*3)+2 ] = (int2){(i*6)+4, (i*6)+5};
 	}
 	glBindBuffer(GL_ARRAY_BUFFER, b_fluid_line_vecs);
-	glBufferData(GL_ARRAY_BUFFER, (sim->cells+1)*(sim->cells+1)*6 * sizeof(vec3), line_vecs, GL_DYNAMIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, (cells+1)*(cells+1)*6 * sizeof(vec3), line_vecs, GL_DYNAMIC_DRAW);
 }
-*/
+
 
 void fluidtest_draw(mat4x4 modelview, mat4x4 projection)
 {
@@ -216,13 +225,14 @@ void fluidtest_draw(mat4x4 modelview, mat4x4 projection)
 	glBufferData(GL_ARRAY_BUFFER, n_part * sizeof(struct particle), particles, GL_DYNAMIC_DRAW);
 	glDrawArrays( GL_POINTS, 0, 30*30*30);
 
-/*
+
 	// draw a bounding volume
+	int cells = 1 << (sim->max_depth);
 	glUseProgram(line_shader->prog);
 	glUniformMatrix4fv(line_shader->unif[0], 1, GL_FALSE, modelview.f);
 	glUniformMatrix4fv(line_shader->unif[1], 1, GL_FALSE, projection.f);
 	glBindVertexArray( va_fluid_line_vecs );
-	fluidtest_build_lines();
-	glDrawArrays( GL_LINES, 0, (sim->cells+1)*(sim->cells+1)*6);
-*/
+	fluidtest_build_lines(sim);
+	glDrawArrays( GL_LINES, 0, (cells+1)*(cells+1)*6);
+
 }

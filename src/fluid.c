@@ -49,7 +49,7 @@ struct fluid_sim* fluid_init(float x, float y, float z, int max_depth)
 		free(sim);
 		return NULL;
 	}
-	sim->max_depth = 5; // chosen by fair dice roll
+	sim->max_depth = max_depth; // chosen by fair dice roll
 	sim->max_vortons = 20+10;	// why not
 	sim->vortons = malloc(sim->max_vortons * sizeof(struct vorton));
 	if(sim->vortons == NULL)
