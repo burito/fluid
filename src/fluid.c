@@ -206,6 +206,63 @@ vec3 fluid_accumulate_velocity(struct vorton vorton, vec3 position)
 	return vec3_cross(w, distance);
 }
 
+// determine the velocity imparted on a position by a single vorton, minus a child
+vec3 fluid_accumulate_part_velocity(struct fluid_sim *sim, int parent, int child, vec3 position)
+{
+	// if there is no child, the parent is the only one that matters
+	if(child == 0)
+	{
+		return fluid_accumulate_velocity(sim->vortons[parent], position);
+	}
+
+	// if the parent has one child, we will take care of it next time around
+	if(sim->vortons[parent].count == 1)
+	{
+		return (vec3){{0,0,0}};
+	}
+
+	// else subtract the childs contribution from the parent, and apply the parent
+	struct vorton difference;
+	struct vorton vorton;
+
+	difference.w = div(sim->vortons[child].w, sim->vortons[parent].count);
+	vorton.w = sub(sim->vortons[parent].w, difference.w);
+
+	difference.v = div(sim->vortons[child].v, sim->vortons[parent].count);
+	vorton.v = sub(sim->vortons[parent].v, difference.v);
+
+	difference.p = mul(sim->vortons[child].p, sim->vortons[child].magnitude);
+	difference.p = div(difference.p, sim->vortons[parent].magnitude);
+	vorton.p = sub(sim->vortons[parent].p, difference.p);
+
+	return fluid_accumulate_velocity(vorton, position);
+}
+
+
+// find the velocity of the fluid at a given position
+vec3 fluid_tree_velocity(struct fluid_sim *sim, vec3 position)
+{
+	vec3 rel_position = sub(position, sim->octtree->origin);
+	vec3 half_volume = sim->octtree->volume;
+	vec3 result = (vec3){{0,0,0}};
+	struct octtree_node* nodes = sim->octtree->node_pool;
+	int here = 0;
+	for(int i=0; i<sim->max_depth; i++)
+	{
+		int parent = here;
+		// find which child node to descend into
+		half_volume = mul(half_volume, 0.5);
+		int branch = octtree_child_position(rel_position, half_volume);
+		here = nodes[here].node[branch];
+		result = add(result, fluid_accumulate_part_velocity(sim, parent, here, rel_position));
+
+		// does the child node exist?
+		if(here == 0)
+			break;
+	}
+	return result;
+}
+
 
 // exchange the vorticity between two vortons
 void fluid_vorton_exchange(struct vorton *left, struct vorton *right)
@@ -271,30 +328,6 @@ void fluid_diffuse(struct fluid_sim *sim)
 	}
 }
 */
-// find the velocity of the fluid at a given position
-vec3 fluid_tree_velocity(struct fluid_sim *sim, vec3 position)
-{
-	vec3 rel_position = sub(position, sim->octtree->origin);
-	vec3 half_volume = sim->octtree->volume;
-	vec3 result = (vec3){{0,0,0}};
-	struct octtree_node* nodes = sim->octtree->node_pool;
-	int here = 0;
-	for(int i=0; i<sim->max_depth; i++)
-	{
-		result = add(result, fluid_accumulate_velocity(sim->vortons[here], rel_position));
-		// TODO: remove child from result
-
-		// find which child node to descend into
-		half_volume = mul(half_volume, 0.5);
-		int branch = octtree_child_position(rel_position, half_volume);
-		here = nodes[here].node[branch];
-
-		// does the child node exist?
-		if(here == 0)
-			break;
-	}
-	return result;
-}
 
 /*
 void fluid_velocity_grid(struct fluid_sim *sim)
