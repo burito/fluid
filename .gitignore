@@ -3,3 +3,4 @@ build/
 *.dll
 *.so
 fluid
+.vscode
