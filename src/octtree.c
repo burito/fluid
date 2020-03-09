@@ -50,6 +50,7 @@ struct octtree* octtree_init(uint32_t size)
 		return NULL;
 	}
 	memset(ret->node_pool, 0, size * sizeof(struct octtree_node));
+	ret->node_count = 1; // there is always a root node
 	return ret;
 }
 
@@ -62,7 +63,7 @@ void octtree_free(struct octtree* octtree)
 void octtree_empty(struct octtree* octtree)
 {
 	memset(octtree->node_pool, 0, octtree->node_pool_size * sizeof(struct octtree_node));
-	octtree->node_count = 0;
+	octtree->node_count = 1;
 }
 
 
