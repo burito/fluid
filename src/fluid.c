@@ -268,7 +268,7 @@ vec3 fluid_tree_velocity(struct fluid_sim *sim, vec3 position)
 	vec3 result = (vec3){{0,0,0}};
 	struct octtree_node* nodes = sim->octtree->node_pool;
 	int here = 0;
-	for(int i=0; i<sim->max_depth; i++)
+	for(int i=0; i<=sim->max_depth; i++)
 	{
 		int parent = here;
 		// find which child node to descend into
