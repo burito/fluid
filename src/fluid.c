@@ -239,22 +239,12 @@ vec3 fluid_accumulate_part_velocity(struct fluid_sim *sim, int parent, int child
 	struct vorton difference;
 	struct vorton vorton;
 
-//	difference.w = mul(sim->vortons[parent].w, sim->vortons[parent].count);
-//	vorton.w = div(sub(difference.w, sim->vortons[child].w), (sim->vortons[parent].count-1));
 	vorton.w = sub(sim->vortons[parent].w, sim->vortons[child].w);
-
-//	difference.v = mul(sim->vortons[parent].v, sim->vortons[parent].count);
-//	vorton.v = div(sub(difference.v, sim->vortons[child].v), (sim->vortons[parent].count-1));
 	vorton.v = sub(sim->vortons[parent].v, sim->vortons[child].v);
 
 	difference.p = mul(sim->vortons[parent].p, sim->vortons[parent].magnitude);
 	difference.p = sub(difference.p, mul(sim->vortons[child].p, sim->vortons[child].magnitude));
 	vorton.p = div(difference.p, sim->vortons[parent].magnitude-sim->vortons[child].magnitude);
-
-//	fluid_log_vorton("parent", sim->vortons[parent]);
-//	fluid_log_vorton("child", sim->vortons[child]);
-
-//	fluid_log_vorton("end", vorton);
 
 	return fluid_accumulate_velocity(vorton, position);
 }
@@ -505,6 +495,7 @@ void fluid_advect_vortons(struct fluid_sim *sim)
 }
 */
 
+// evolve the fluid simulation
 void fluid_tick(struct fluid_sim *sim)
 {
 	fluid_tree_update(sim);
@@ -514,41 +505,18 @@ void fluid_tick(struct fluid_sim *sim)
 //	fluid_advect_vortons(sim);
 }
 
-/*
+// check that a position is inside the fluid volume, expanding it if not
 void fluid_bound(struct fluid_sim *sim, vec3 position)
 {
-	float step;
+	vec3 *origin = &sim->octtree->origin;
+	vec3 relative_position = sub(*origin, position);
 
-	step = sim->step.x * 2.0f;
+	origin->y = min(origin->y, relative_position.y);
+	origin->z = min(origin->z, relative_position.z);
+	origin->x = min(origin->x, relative_position.x);
 
-	if(position.x < sim->octtree->origin.x+step)
-		sim->octtree->origin.x = position.x - step;
-	if(position.x > sim->octtree->origin.x + sim->octtree->volume.x - step)
-		sim->octtree->volume.x = position.x - sim->octtree->origin.x + step;
-
-	step = sim->step.y * 2.0f;
-
-	if(position.y < sim->octtree->origin.y+step)
-		sim->octtree->origin.y = position.y - step;
-	if(position.y > sim->octtree->origin.y + sim->octtree->volume.y - step)
-		sim->octtree->volume.y = position.y - sim->octtree->origin.y + step;
-
-	step = sim->step.z * 2.0f;
-
-	if(position.z < sim->octtree->origin.z+step)
-		sim->octtree->origin.z = position.z - step;
-	if(position.z > sim->octtree->origin.z + sim->octtree->volume.z - step)
-		sim->octtree->volume.z = position.z - sim->octtree->origin.z + step;
+	vec3 *volume = &sim->octtree->volume;
+	volume->x = max(volume->x, relative_position.x);
+	volume->y = max(volume->y, relative_position.y);
+	volume->z = max(volume->z, relative_position.z);
 }
-
-void fluid_update_box(struct fluid_sim *sim)
-{
-	sim->step.x = sim->octtree->volume.x / (float)sim->cells;
-	sim->step.y = sim->octtree->volume.y / (float)sim->cells;
-	sim->step.z = sim->octtree->volume.z / (float)sim->cells;
-
-	sim->oneOverStep.x = 1.0f / sim->step.x;
-	sim->oneOverStep.y = 1.0f / sim->step.y;
-	sim->oneOverStep.z = 1.0f / sim->step.z;
-}
-*/

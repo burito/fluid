@@ -53,5 +53,4 @@ void fluid_tree_update(struct fluid_sim *sim);
 
 void fluid_tick(struct fluid_sim *sim);
 void fluid_advect_tracers(struct fluid_sim *sim, struct particle *particles, int count);
-void fluid_bound(struct fluid_sim *sim, struct particle *pos);
-void fluid_update_box(struct fluid_sim *sim);
+void fluid_bound(struct fluid_sim *sim, vec3 position);
