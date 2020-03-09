@@ -66,7 +66,7 @@ int main_init(int argc, char *argv[])
 	log_info("GL Renderer : %s", glGetString(GL_RENDERER) );
 	log_info("GL Version  : %s", glGetString(GL_VERSION) );
 	log_info("SL Version  : %s", glGetString(GL_SHADING_LANGUAGE_VERSION) );
-	
+
 	int gl_major_version = 0;
 	int gl_minor_version = 0;
 	glGetIntegerv(GL_MAJOR_VERSION, &gl_major_version);
@@ -111,8 +111,8 @@ void main_end(void)
 
 
 // last digit of angle is x-fov, in radians
-vec4 position = {{0.0, 0.0, 0.0, 0.0}};
-vec4 angle = {{0.0, 0.0, 0.0, M_PI*0.5}};
+vec4 position = {{1.636183, -0.490000, 1.073543, 0.0}};
+vec4 angle = {{0.021000, 0.993001, 0.000000, M_PI*0.5}};
 
 void render(mat4x4 view, mat4x4 projection)
 {
@@ -125,7 +125,7 @@ void render(mat4x4 view, mat4x4 projection)
 	model = mul( model, mat4x4_rot_y(step) );		// rotate the bunny
 	model = mul( model, mat4x4_translate_float(-0.5, 0, -0.5) ); // around it's own origin
 	model = mul( mat4x4_translate_float( 0, 0, -2), model );	// move it 2 metres infront of the origin
-	
+
 	model = mul(mat4x4_translate_vec3( position.xyz ), model);	// move to player position
 	model = mul(mat4x4_rot_y(angle.y ), model);
 	model = mul(mat4x4_rot_x(angle.x ), model);
@@ -193,4 +193,3 @@ void main_loop(void)
 	time = (float)(sys_time() - time_start)/(float)sys_ticksecond;
 	gfx_swap();
 }
-
