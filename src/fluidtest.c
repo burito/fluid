@@ -81,12 +81,12 @@ void fluidtest_init(void)
 	sim = fluid_init(s,s,s, 2);
 
 	struct vorton* vorton = &sim->vortons[sim->octtree->node_pool_size];
-	vorton->p = (vec3){{0.2, 0.2, 0.2}};
-	vorton->w = (vec3){{0.5, 0.0, 0.0}};
+	vorton->p = (vec3){{0.3, 0.3, 0.3}};
+	vorton->w = (vec3){{1.0, 0.0, 0.0}};
 	sim->vorton_count++;
 	vorton = &sim->vortons[sim->octtree->node_pool_size+1];
 	vorton->p = (vec3){{0.7, 0.7, 0.7}};
-	vorton->w = (vec3){{0.5, 0.0, 0.0}};
+	vorton->w = (vec3){{1.0, 0.0, 0.0}};
 	sim->vorton_count++;
 
 	glGenVertexArrays(1, &va_fluid);

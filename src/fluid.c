@@ -30,6 +30,19 @@ freely, subject to the following restrictions:
 #include "log.h"
 #include "octtree.h"
 
+
+void fluid_log_vorton(char *name, struct vorton vorton)
+{
+	log_info("Vorton %s\nvort p={{%f, %f, %f}}\nvort w={{%f, %f, %f}}\nmag=%f, count=%d, calc_mag=%f",
+	name,
+	vorton.p.x, vorton.p.y, vorton.p.z,
+	vorton.w.x, vorton.w.y, vorton.w.z,
+	vorton.magnitude, vorton.count, mag(vorton.w)
+	);
+}
+
+
+
 // Initialise the Fluid Sim, allocating memory and all that.
 struct fluid_sim* fluid_init(float x, float y, float z, int max_depth)
 {
@@ -104,14 +117,14 @@ void fluid_octtree_add_vorton(struct fluid_sim *sim, int j)
 		{
 			*current_node = *vorton;
 			current_node->count = 1;
-			float magnitude = sqrt(mag(vorton->w));//sqrt() may be optional
+			float magnitude = (mag(vorton->w));//sqrt() may be optional
 			current_node->p = mul(vorton->p, magnitude);
 			current_node->magnitude = magnitude;
 		}
 		else
 		{
 			// find the magnitude of the vorton
-			float magnitude = sqrt(mag(vorton->w));//sqrt() may be optional
+			float magnitude = (mag(vorton->w));//sqrt() may be optional
 			// position is weighted proportionally to the magnitude of the vorton
 			current_node->p = add(mul(vorton->p, magnitude), current_node->p);
 			current_node->magnitude += magnitude;
@@ -166,9 +179,10 @@ void fluid_tree_update(struct fluid_sim *sim)
 		struct vorton* vorton = &sim->vortons[i];
 		// position is weighted average, based on magnitude of w
 		vorton->p = div(vorton->p, vorton->magnitude);
-		vorton->w = div(vorton->w, vorton->count);
-		vorton->v = div(vorton->v, vorton->count);
+//		vorton->w = div(vorton->w, vorton->count);
+//		vorton->v = div(vorton->v, vorton->count);
 	}
+
 }
 
 
@@ -225,15 +239,22 @@ vec3 fluid_accumulate_part_velocity(struct fluid_sim *sim, int parent, int child
 	struct vorton difference;
 	struct vorton vorton;
 
-	difference.w = div(sim->vortons[child].w, sim->vortons[parent].count);
-	vorton.w = sub(sim->vortons[parent].w, difference.w);
+//	difference.w = mul(sim->vortons[parent].w, sim->vortons[parent].count);
+//	vorton.w = div(sub(difference.w, sim->vortons[child].w), (sim->vortons[parent].count-1));
+	vorton.w = sub(sim->vortons[parent].w, sim->vortons[child].w);
 
-	difference.v = div(sim->vortons[child].v, sim->vortons[parent].count);
-	vorton.v = sub(sim->vortons[parent].v, difference.v);
+//	difference.v = mul(sim->vortons[parent].v, sim->vortons[parent].count);
+//	vorton.v = div(sub(difference.v, sim->vortons[child].v), (sim->vortons[parent].count-1));
+	vorton.v = sub(sim->vortons[parent].v, sim->vortons[child].v);
 
-	difference.p = mul(sim->vortons[child].p, sim->vortons[child].magnitude);
-	difference.p = div(difference.p, sim->vortons[parent].magnitude);
-	vorton.p = sub(sim->vortons[parent].p, difference.p);
+	difference.p = mul(sim->vortons[parent].p, sim->vortons[parent].magnitude);
+	difference.p = sub(difference.p, mul(sim->vortons[child].p, sim->vortons[child].magnitude));
+	vorton.p = div(difference.p, sim->vortons[parent].magnitude-sim->vortons[child].magnitude);
+
+//	fluid_log_vorton("parent", sim->vortons[parent]);
+//	fluid_log_vorton("child", sim->vortons[child]);
+
+//	fluid_log_vorton("end", vorton);
 
 	return fluid_accumulate_velocity(vorton, position);
 }
