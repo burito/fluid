@@ -120,6 +120,7 @@ void fluid_octtree_add_vorton(struct fluid_sim *sim, int j)
 			float magnitude = (mag(vorton->w));//sqrt() may be optional
 			current_node->p = mul(vorton->p, magnitude);
 			current_node->magnitude = magnitude;
+			sim->octtree->node_pool->leaf[0]=current_node_index;
 		}
 		else
 		{
@@ -130,6 +131,11 @@ void fluid_octtree_add_vorton(struct fluid_sim *sim, int j)
 			current_node->magnitude += magnitude;
 			current_node->w = add(current_node->w, vorton->w);
 			current_node->v = add(current_node->v, vorton->v);
+			// add the index of the vorton to the leaf array, for diffusion later
+			if(current_node->count<8)
+			{
+				sim->octtree->node_pool->leaf[current_node->count]=current_node_index;
+			}
 			current_node->count++;
 		}
 
