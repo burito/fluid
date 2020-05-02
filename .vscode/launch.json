@@ -1,0 +1,44 @@
+{
+        // Use IntelliSense to learn about possible attributes.
+        // Hover to view descriptions of existing attributes.
+        // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+        "version": "0.2.0",
+        "configurations": [
+                {
+                        "name": "(gdb) Launch",
+                        "type": "cppdbg",
+                        "request": "launch",
+                        "args": [],
+                        "stopAtEntry": false,
+                        "cwd": "${workspaceFolder}",
+                        "environment": [],
+                        "externalConsole": false,
+                        "MIMode": "gdb",
+                        "setupCommands": [
+                                {
+                                        "description": "Enable pretty-printing for gdb",
+                                        "text": "-enable-pretty-printing",
+                                        "ignoreFailures": true
+                                }
+                        ],
+                        "linux": {
+                                "program": "${workspaceFolder}/fluid",
+                                "MIMode": "lldb",
+                                "environment": [
+                                        {
+                                                "name": "DISPLAY",
+                                                "value": "${env:DISPLAY}"
+                                        }],
+                        },
+                        "osx": {
+                                "program": "${workspaceFolder}/fluid.app/Contents/MacOS/fluid",
+                                "MIMode": "lldb",
+                        },
+                        "windows": {
+                                "miDebuggerPath": "c:/msys64/mingw64/bin/gdb.exe",
+                                "MIMode": "gdb",
+                                "program": "${workspaceFolder}/fluid.exe",
+                        },
+                }
+        ]
+}
