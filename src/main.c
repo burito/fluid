@@ -39,6 +39,8 @@ freely, subject to the following restrictions:
 #include "shader.h"
 #include "mesh.h"
 
+#include "spacemouse.h"
+
 //#include "fluid.h"
 #include "fluidtest.h"
 
@@ -93,6 +95,8 @@ int main_init(int argc, char *argv[])
 //	glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, ea_fluid_line_elements );
 //	glBufferData( GL_ELEMENT_ARRAY_BUFFER, (sim->cells+1)*(sim->cells+1)*6 * sizeof(int), line_elements, GL_STATIC_DRAW );
 
+	spacemouse_init();
+
 	time_start = sys_time();
 	log_info("Initialised : OK");
 	return 0;   // it worked!
@@ -101,6 +105,7 @@ int main_init(int argc, char *argv[])
 
 void main_end(void)
 {
+	spacemouse_shutdown();
 	if(vr_using)
 	{
 		vr_end();
@@ -149,6 +154,7 @@ void render(mat4x4 view, mat4x4 projection)
 
 void main_loop(void)
 {
+	spacemouse_tick();
 	fluidtest_tick();
 
 	// do normal render loop stuff

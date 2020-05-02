@@ -33,10 +33,9 @@ This may not be necessary anymore.
 
 ## Build Environment
 ### Windows
-* Install [Git for Windows](https://git-scm.com/download/win)
 * Install [msys2-x86_64-20190524.exe](https://www.msys2.org/)
 ```bash
-pacman -S mingw-w64-x86_64-gcc mingw-w64-x86_64-imagemagick mingw-w64-x86_64-clang mingw-w64-x86_64-clang-tools-extra msys/man-pages-posix --disable-download-timeout
+pacman -S mingw-w64-x86_64-gcc mingw-w64-x86_64-imagemagick mingw-w64-x86_64-clang mingw-w64-x86_64-clang-tools-extra git msys/man-pages-posix --disable-download-timeout
 ```
 
 ### Linux
@@ -66,5 +65,6 @@ GLEW doesn't distribute useable files from a git repo (the needed files are gene
 * [```deps/models```](https://github.com/burito/models) - [Morgan McGuire's Computer Graphics Archive](https://casual-effects.com/data)
 * ```deps/*gl*``` - [GLEW 2.1.0](http://glew.sourceforge.net/)
     * Add ```#define GLEW_STATIC``` to the top of ```glew.h```
+* [```deps/dpb/deps/hidapi```](https://github.com/signal11/hidapi) - Alan Ott, under BSD License
 
 For everything else, I am to blame.
