@@ -33,9 +33,10 @@ This may not be necessary anymore.
 
 ## Build Environment
 ### Windows
-* Install [msys2-x86_64-20190524.exe](https://www.msys2.org/)
+* Install current Nvidia drivers (451.67)
+* Install [msys2-x86_64-20200629.exe](https://www.msys2.org/)
 ```bash
-pacman -S mingw-w64-x86_64-gcc mingw-w64-x86_64-imagemagick mingw-w64-x86_64-clang mingw-w64-x86_64-clang-tools-extra git msys/man-pages-posix --disable-download-timeout
+pacman -S mingw-w64-x86_64-gcc mingw-w64-x86_64-imagemagick mingw-w64-x86_64-clang mingw-w64-x86_64-clang-tools-extra git vim man-pages-posix --disable-download-timeout
 ```
 
 ### Linux
