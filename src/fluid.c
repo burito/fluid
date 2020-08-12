@@ -517,12 +517,12 @@ void fluid_bound(struct fluid_sim *sim, vec3 position)
 	vec3 *origin = &sim->octtree->origin;
 	vec3 relative_position = sub(*origin, position);
 
-	origin->y = min(origin->y, relative_position.y);
-	origin->z = min(origin->z, relative_position.z);
-	origin->x = min(origin->x, relative_position.x);
+	origin->y = nmin(origin->y, relative_position.y);
+	origin->z = nmin(origin->z, relative_position.z);
+	origin->x = nmin(origin->x, relative_position.x);
 
 	vec3 *volume = &sim->octtree->volume;
-	volume->x = max(volume->x, relative_position.x);
-	volume->y = max(volume->y, relative_position.y);
-	volume->z = max(volume->z, relative_position.z);
+	volume->x = nmax(volume->x, relative_position.x);
+	volume->y = nmax(volume->y, relative_position.y);
+	volume->z = nmax(volume->z, relative_position.z);
 }
