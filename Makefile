@@ -6,7 +6,7 @@ DESCRIPTION = Fluid Test
 BINARY_NAME = fluid
 OBJS = main.o version.o fast_atof.o log.o global.o 3dmaths.o glerror.o vr.o \
 	shader.o text.o fps_movement.o fluid.o mesh.o image.o stb_image.o \
-	fluidtest.o octtree.o spacemouse.o
+	fluidtest.o octtree.o spacemouse.o vr_helper.o
 CFLAGS = -Wall -std=c11 -isystem deps -Ideps/dpb/src -Ideps/dpb/deps/hidapi/hidapi
 VPATH = src build deps deps/dpb/src deps/dpb/deps/hidapi/
 
