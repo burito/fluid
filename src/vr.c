@@ -29,7 +29,7 @@ freely, subject to the following restrictions:
 
 #include <stdio.h>
 #include <string.h>
-#include <openvr/openvr_capi.h>
+#include <openvr/headers/openvr_capi.h>
 
 #include "log.h"
 
@@ -139,7 +139,7 @@ void device_spam(int id)
 	// case ETrackedDeviceClass_TrackedDeviceClass_DisplayRedirect:   class_letter = 'D'; break;
 	// default:                                                       class_letter = '?'; break;
 	// }
-	
+
 
 
 //	log_info("%d:%c:%s:", id, class_letter, device_name);
@@ -163,7 +163,7 @@ void device_spam(int id)
 			log_warning("UndocumentedHand:");
 			break;
 		}
-	
+
 		break;
 	case ETrackedDeviceClass_TrackedDeviceClass_HMD:
 		break;
@@ -394,13 +394,13 @@ int vr_init(void)
 		log_warning("VR Headset is not present");
 		return 1;
 	}
-	
+
 	if( !VR_IsRuntimeInstalled() )
 	{
 		log_warning("VR Runtime is not installed");
 		return 1;
 	}
-	
+
 	uint32_t vrToken = VR_InitInternal(&eError, EVRApplicationType_VRApplication_Scene);
 	if (eError != EVRInitError_VRInitError_None)
 	{
@@ -537,7 +537,7 @@ void vr_loop( void render(mat4x4, mat4x4) )
 				break;
 		}
 	}
-	
+
 	// Process OpenVR Controller // k_unMaxTrackedDeviceCount = 16
 	for( TrackedDeviceIndex_t unDevice = 0; unDevice < 16; unDevice++)
 	{
@@ -638,7 +638,7 @@ void vr_loop( void render(mat4x4, mat4x4) )
 	glBindFramebuffer(GL_READ_FRAMEBUFFER, leftEyeDesc.m_nRenderFramebufferId);
 	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, leftEyeDesc.m_nResolveFramebufferId );
 
-	glBlitFramebuffer( 0, 0, m_nRenderWidth, m_nRenderHeight, 0, 0, m_nRenderWidth, m_nRenderHeight, 
+	glBlitFramebuffer( 0, 0, m_nRenderWidth, m_nRenderHeight, 0, 0, m_nRenderWidth, m_nRenderHeight,
 		GL_COLOR_BUFFER_BIT,
 		GL_LINEAR );
 
@@ -659,7 +659,7 @@ void vr_loop( void render(mat4x4, mat4x4) )
 	glBindFramebuffer(GL_READ_FRAMEBUFFER, rightEyeDesc.m_nRenderFramebufferId );
 	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, rightEyeDesc.m_nResolveFramebufferId );
 
-	glBlitFramebuffer( 0, 0, m_nRenderWidth, m_nRenderHeight, 0, 0, m_nRenderWidth, m_nRenderHeight, 
+	glBlitFramebuffer( 0, 0, m_nRenderWidth, m_nRenderHeight, 0, 0, m_nRenderWidth, m_nRenderHeight,
 		GL_COLOR_BUFFER_BIT,
 		GL_LINEAR );
 
