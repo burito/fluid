@@ -4,11 +4,11 @@ COMPANY = Daniel Burke
 COPYRIGHT = 2013-2020
 DESCRIPTION = Fluid Test
 BINARY_NAME = fluid
-OBJS = main.o version.o fast_atof.o log.o global.o 3dmaths.o glerror.o vr.o \
-	shader.o text.o fps_movement.o fluid.o mesh.o image.o stb_image.o \
+OBJS = main.o version.o log.o global.o 3dmaths.o glerror.o vr.o \
+	shader.o text.o fps_movement.o fluid.o mesh.o mesh_gl.o stb_ds.o stb_image.o \
 	fluidtest.o octtree.o spacemouse.o vr_helper.o
 CFLAGS = -std=c11 -Wall -isystem deps -Ideps/dpb/src -Ideps/dpb/deps/hidapi/hidapi
-VPATH = src build deps deps/dpb/src deps/dpb/deps/hidapi/
+VPATH = src build deps deps/dpb/src deps/dpb/deps deps/dpb/deps/hidapi/
 
 WIN_LIBS = -lshell32 -luser32 -lgdi32 -lopengl32 -lwinmm -lws2_32 \
 	-lxinput9_1_0

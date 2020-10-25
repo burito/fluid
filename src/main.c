@@ -37,7 +37,7 @@ freely, subject to the following restrictions:
 #include "vr.h"
 #include "fps_movement.h"
 #include "shader.h"
-#include "mesh.h"
+#include "mesh_gl.h"
 
 #include "spacemouse.h"
 
@@ -49,8 +49,7 @@ float time = 0;
 
 float step = 0.0f;
 
-WF_OBJ * bunny;
-IMG * img;
+struct MESH_OPENGL *bunny;
 GLSLSHADER *mesh_shader;
 
 void gfx_init(void);
@@ -83,7 +82,7 @@ int main_init(int argc, char *argv[])
 	shader_uniform(mesh_shader, "modelview");
 	shader_uniform(mesh_shader, "projection");
 
-	bunny = wf_load("data/models/bunny/bunny.obj");
+	bunny = mesh_load("data/models/bunny/bunny.obj");
 	if(!bunny)
 	{
 		return 1;
@@ -105,6 +104,7 @@ int main_init(int argc, char *argv[])
 
 void main_end(void)
 {
+	mesh_free(bunny);
 	spacemouse_shutdown();
 	if(vr_using)
 	{
@@ -141,7 +141,7 @@ void render(mat4x4 view, mat4x4 projection)
 	glUniformMatrix4fv(mesh_shader->unif[0], 1, GL_FALSE, modelview.f);
 	glUniformMatrix4fv(mesh_shader->unif[1], 1, GL_FALSE, projection.f);
 	glColor4f( 1., 1., 1., 1.);
-	bunny->draw(bunny);
+	mesh_draw(bunny);
 
 	fluidtest_draw(modelview, projection);
 
