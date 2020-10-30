@@ -43,8 +43,8 @@ struct fluid_sim * sim;
 struct particle *particles;
 int n_part;
 
-GLSLSHADER *particle_shader;
-GLSLSHADER *line_shader;
+struct GLSLSHADER *particle_shader;
+struct GLSLSHADER *line_shader;
 
 GLuint va_fluid;
 GLuint b_fluid;
@@ -217,9 +217,9 @@ void fluidtest_draw(mat4x4 modelview, mat4x4 projection)
 {
 	// draw the tracers
 	glPointSize( 3.0 );
-	glUseProgram(particle_shader->prog);
-	glUniformMatrix4fv(particle_shader->unif[0], 1, GL_FALSE, modelview.f);
-	glUniformMatrix4fv(particle_shader->unif[1], 1, GL_FALSE, projection.f);
+	glUseProgram(particle_shader->program);
+	glUniformMatrix4fv(particle_shader->uniforms[0], 1, GL_FALSE, modelview.f);
+	glUniformMatrix4fv(particle_shader->uniforms[1], 1, GL_FALSE, projection.f);
 	glBindVertexArray(va_fluid);
 	glBindBuffer(GL_ARRAY_BUFFER, b_fluid);
 	glBufferData(GL_ARRAY_BUFFER, n_part * sizeof(struct particle), particles, GL_DYNAMIC_DRAW);
@@ -228,9 +228,9 @@ void fluidtest_draw(mat4x4 modelview, mat4x4 projection)
 
 	// draw a bounding volume
 	int cells = 1 << (sim->max_depth);
-	glUseProgram(line_shader->prog);
-	glUniformMatrix4fv(line_shader->unif[0], 1, GL_FALSE, modelview.f);
-	glUniformMatrix4fv(line_shader->unif[1], 1, GL_FALSE, projection.f);
+	glUseProgram(line_shader->program);
+	glUniformMatrix4fv(line_shader->uniforms[0], 1, GL_FALSE, modelview.f);
+	glUniformMatrix4fv(line_shader->uniforms[1], 1, GL_FALSE, projection.f);
 	glBindVertexArray( va_fluid_line_vecs );
 	fluidtest_build_lines(sim);
 	glDrawArrays( GL_LINES, 0, (cells+1)*(cells+1)*6);

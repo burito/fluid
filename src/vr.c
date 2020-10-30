@@ -100,7 +100,7 @@ int controller_right_id = -1;
 
 mat4x4 eye_left, eye_left_proj;
 mat4x4 eye_right, eye_right_proj;
-GLSLSHADER *eye_prog = NULL;
+struct GLSLSHADER *eye_prog = NULL;
 GLuint eye_VAO = 0;
 GLuint eye_VBO, eye_EAB;
 
@@ -678,7 +678,7 @@ void vr_loop( void render(mat4x4, mat4x4) )
 	glViewport( 0, 0, vid_width, vid_height );
 
 	glBindVertexArray( eye_VAO );
-	glUseProgram( eye_prog->prog );
+	glUseProgram( eye_prog->program );
 
 	// render left eye (first half of index array )
 	glBindTexture(GL_TEXTURE_2D, leftEyeDesc.m_nResolveTextureId );

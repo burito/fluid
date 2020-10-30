@@ -50,7 +50,7 @@ float time = 0;
 float step = 0.0f;
 
 struct MESH_OPENGL *bunny;
-GLSLSHADER *mesh_shader;
+struct GLSLSHADER *mesh_shader;
 
 void gfx_init(void);
 void gfx_end(void);
@@ -137,9 +137,9 @@ void render(mat4x4 view, mat4x4 projection)
 
 	mat4x4 modelview = mul( view, model);
 
-	glUseProgram(mesh_shader->prog);
-	glUniformMatrix4fv(mesh_shader->unif[0], 1, GL_FALSE, modelview.f);
-	glUniformMatrix4fv(mesh_shader->unif[1], 1, GL_FALSE, projection.f);
+	glUseProgram(mesh_shader->program);
+	glUniformMatrix4fv(mesh_shader->uniforms[0], 1, GL_FALSE, modelview.f);
+	glUniformMatrix4fv(mesh_shader->uniforms[1], 1, GL_FALSE, projection.f);
 	glColor4f( 1., 1., 1., 1.);
 	mesh_draw(bunny);
 
