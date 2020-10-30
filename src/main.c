@@ -57,9 +57,6 @@ void gfx_end(void);
 void gfx_swap(void);
 
 
-
-
-
 int main_init(int argc, char *argv[])
 {
 	gfx_init();
@@ -73,16 +70,26 @@ int main_init(int argc, char *argv[])
 	glGetIntegerv(GL_MAJOR_VERSION, &gl_major_version);
 	glGetIntegerv(GL_MAJOR_VERSION, &gl_minor_version);
 	log_info("glGetIntVer : %d.%d", gl_major_version, gl_minor_version);
+//	glEnable(GL_FRAMEBUFFER_SRGB);
 
 	fluidtest_init();
 
 	mesh_shader = shader_load(
-		"data/shaders/mesh_vertex.shader",
-		"data/shaders/mesh_frag.shader" );
+		"data/shaders/mesh.vert",
+		"data/shaders/mesh.frag" );
 	shader_uniform(mesh_shader, "modelview");
 	shader_uniform(mesh_shader, "projection");
 
 	bunny = mesh_load("data/models/bunny/bunny.obj");
+//	bunny = mesh_load("data/models/powerplant/powerplant.obj");
+//	bunny = mesh_load("data/models/lpshead/heads.obj");
+//	bunny = mesh_load("data/models/lpshead/head.OBJ");
+//	bunny = mesh_load("data/models/buddha/buddha.obj");
+//	bunny = mesh_load("data/models/hairball/hairball.obj");
+//	bunny = mesh_load("data/models/sponza/sponza.obj");
+//	bunny = mesh_load("data/models/San_Miguel/san-miguel.obj");
+//	bunny = mesh_load("data/models/stargate/stargate.obj");
+//	bunny = mesh_load("data/models/xyzrgb_dragon/xyzrgb_dragon.obj");
 	if(!bunny)
 	{
 		return 1;

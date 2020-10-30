@@ -102,14 +102,14 @@ void fluidtest_init(void)
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 	particle_shader = shader_load(
-		"data/shaders/particle_vertex.shader",
-		"data/shaders/particle_frag.shader" );
+		"data/shaders/particle.vert",
+		"data/shaders/particle.frag" );
 	shader_uniform(particle_shader, "modelview");
 	shader_uniform(particle_shader, "projection");
 
 	line_shader = shader_load(
-		"data/shaders/line_vertex.shader",
-		"data/shaders/line_frag.shader" );
+		"data/shaders/line.vert",
+		"data/shaders/line.frag" );
 	shader_uniform(line_shader, "modelview");
 	shader_uniform(line_shader, "projection");
 
