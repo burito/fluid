@@ -38,7 +38,6 @@ freely, subject to the following restrictions:
 #include "fps_movement.h"
 #include "shader.h"
 #include "mesh_gl.h"
-
 #include "spacemouse.h"
 
 //#include "fluid.h"
@@ -139,14 +138,14 @@ void render(mat4x4 view, mat4x4 projection)
 	model = mul( mat4x4_translate_float( 0, 0, -2), model );	// move it 2 metres infront of the origin
 
 	model = mul(mat4x4_translate_vec3( position.xyz ), model);	// move to player position
-	model = mul(mat4x4_rot_y(angle.y ), model);
-	model = mul(mat4x4_rot_x(angle.x ), model);
+	model = mul(mat4x4_rot_y(-angle.y ), model);
+	model = mul(mat4x4_rot_x(-angle.x ), model);
 
 	mat4x4 modelview = mul( view, model);
 
 	glUseProgram(mesh_shader->program);
-	glUniformMatrix4fv(mesh_shader->uniforms[0], 1, GL_FALSE, modelview.f);
-	glUniformMatrix4fv(mesh_shader->uniforms[1], 1, GL_FALSE, projection.f);
+	glUniformMatrix4fv(mesh_shader->uniforms[0], 1, GL_TRUE, modelview.f);
+	glUniformMatrix4fv(mesh_shader->uniforms[1], 1, GL_TRUE, projection.f);
 	glColor4f( 1., 1., 1., 1.);
 	mesh_draw(bunny);
 
@@ -177,7 +176,9 @@ void main_loop(void)
 	if(!vr_using)
 	{
 		mat4x4 projection;
-		projection = mat4x4_perspective(1, 30, 1, (float)vid_height / (float)vid_width);
+		projection = mat4x4_perspective(0.1, 300, (float)vid_width / (float)vid_height*0.1, 0.1);
+		float ratio = (float)vid_height / (float)vid_width;
+//		projection = mat4x4_glfrustum(-0.5, 0.5, -(ratio*0.5), ratio*0.5, 1, 30);
 //		projection = mat4x4_orthographic(0.1, 30, 1, (float)vid_height / (float)vid_width);
 		mat4x4 view = mat4x4_translate_float(0, 0, 0); // move the camera 1m above ground
 		render(view, projection);

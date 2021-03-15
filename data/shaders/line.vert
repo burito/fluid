@@ -12,4 +12,3 @@ void main()
 	fragColor = inColor;
 	gl_Position = projection * modelview * vec4(inPosition, 1);
 }
-
